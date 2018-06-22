@@ -1,8 +1,34 @@
 #! /bin/bash
 
+while getopts "hA:" opt; do
+    case $opt in
+        h)
+            echo "
+usage: lauch_hive.sh [-h] [-A <hop_address>] <key_id> <digitalocean API token>
+    options:
+        -h:    Print this help message.
+        -A:    Use given address when setting up docker droplet. Skips creating ssh hop.
+            "
+            exit 0
+            ;;
+        A)
+            hop_private=$OPTARG
+            ;;
+        \?)
+            echo "Invalid option -$OPTARG" >&2
+            exit 1
+            ;;
+        :)
+            echo "Option -$OPTARG requires argument" >&2
+            exit 1
+            ;;
+    esac
+done
+shift $((OPTIND-1))
+
 # Load User values
-token=$(<token)
-key=$(<key)
+token=$2
+key=$1
 
 createDockerUserData() {
     # $1 is address
@@ -71,7 +97,6 @@ createServer() {
     else
         droplet=$(curl -v -X POST -H "Content-Type: application/json" -H "Authorization: Bearer $token" -d '{"name":"'"$1"'","region":"nyc3","size":"'"$2"'","image":"'"$3"'","ssh_keys":['$key'],"backups":false,"ipv6":false,"user_data":"'"$4"'","private_networking":true,"volumes": null,"tags":["hive"]}' "https://api.digitalocean.com/v2/droplets" 2>/dev/null)
     fi
-    echo $droplet
 
     id=$(echo "$droplet" | jq -r ".droplet.id")
 
@@ -96,12 +121,16 @@ getAddrs() {
 
 }
 
-echo "Building SSH Hop droplet"
-createServer hop-hive s-1vcpu-1gb ubuntu-16-04-x64 null
+if [ -z "$hop_private" ]; then
+    echo "Building SSH Hop droplet"
+    createServer hop-hive s-1vcpu-1gb ubuntu-16-04-x64 null
+    hop_id=$id
+    hop_public=$public
+    hop_private=$private
+else
+    echo "SSH Hop already built. Using $hop_private"
+fi
 
-hop_id=$id
-hop_public=$public
-hop_private=$private
 
 
 echo "Building Docker droplet"
@@ -112,9 +141,11 @@ docker_id=$id
 docker_public=$public
 docker_private=$private
 
-echo "Hop ID $hop_id"
+if [ ! -z "$hop_public" ]; then
+    echo "Hop ID $hop_id"
+    echo "Hop Public IP $hop_public"
+fi
 echo "Hop Private IP $hop_private"
-echo "Hop Public IP $hop_public"
 echo "Docker ID $docker_id"
-echo "Docker Private IP $docker_private"
 echo "Docker Public IP $docker_public"
+echo "Docker Private IP $docker_private"
