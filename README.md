@@ -3,21 +3,47 @@
 This project is for the easy setup of a PolySwarm test/dev network on
 DigitalOcean. 
 
-To run, you need to first get a token from DigitalOcean's website. After
-grabbing it, store it in a file called `token` in the root of this project. The
-script uses that token to create the cURL commands that will create the doplets.
+It creates two droplets, one ssh hop & one docker container that spins up, geth,
+IPFS, and polyswarmd. The docker droplet has a firewall preventing access from
+anywhere but the ssh hop. It only allows ssh, access to polyswarmd, and access
+to IPFS.
 
-In addition, you need to add some ssh keys to the website. When you create an
-ssh key, grab the id for the ssh key, and put in into a file called `key`. This
-will tell it what ssh key to add to the droplets so that someone can ssh in and
-configure them further if need be (Like adding valid ssh keys to let devs access
-the hive).
+# Prereqs
 
-# What it creates
+* API token for DigitalOcean
+  [(Instructions)](https://www.digitalocean.com/community/tutorials/how-to-use-the-digitalocean-api-v2)
+* SSH key ID from DigitalOcean
+  [(Instructions)](https://developers.digitalocean.com/documentation/v2/#ssh-keys)
 
-This will open two droplets. The first is an ssh hop. Users need to ssh to our
-box, or transparently connect through to the next box. The second is running
-polyswarmd, geth and ipfs. polyswarmd is running on 31337 and will allow a user
-to create, read, and modify bounties/assertions on the test PolySwarm network. 
+For ease of use, you can use the follow curl statement to get the SSH key IDs.
+Make sure to substitue your token for `<token>`
 
-IPFS is running on port 5001 and you can grab/create files there.
+```
+curl -X GET -H "Content-Type: application/json" -H "Authorization: Bearer
+<token>" "https://api.digitalocean.com/v2/account/keys"
+```
+
+# Launching it
+
+If you run `./launch_hive -h` It will show the following help message.
+
+```
+usage: launch_hive.sh [-h] [-A <hop_address>] <ssh key id> <digitalocean API
+token>
+        options:
+            -h:    Print this help message.
+            -A:    Use given address when setting up docker droplet. Skips
+creating ssh hop.
+```
+
+For the first time it is best to run `./launch_hive.sh <ssh> <token>`. You will
+need both parts up, or the docker droplet will be useless.
+
+After that, it is quicker if you don't need to restart the ssh hop each time,
+because creating droplets takes a couple minutes.
+
+Additionally, if you grant access to other ssh keys, you would have to configure
+all of them again.
+
+To skip creating the ssh hop again, specify the `-A` argument with the address
+of the SSH hop.
