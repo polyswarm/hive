@@ -1,36 +1,50 @@
 #! /bin/bash
 
-while getopts "hA:" opt; do
-    case $opt in
-        h)
-            echo "
-usage: lauch_hive.sh [-h] [-A <hop_address>] <key_id> <digitalocean API token>
-    options:
-        -h:    Print this help message.
-        -A:    Use given address when setting up docker droplet. Skips creating ssh hop.
-            "
-            exit 0
-            ;;
-        A)
-            hop_private=$OPTARG
-            ;;
-        \?)
-            echo "Invalid option -$OPTARG" >&2
-            exit 1
-            ;;
-        :)
-            echo "Option -$OPTARG requires argument" >&2
-            exit 1
-            ;;
-    esac
-done
-shift $((OPTIND-1))
+read_args() {
+    while getopts "hA:" opt; do
+        case $opt in
+            h)
+                echo "
+    usage: lauch_hive.sh [-h] [-A <hop_address>] <ssh key id> <digitalocean API token>
+        options:
+            -h:    Print this help message.
+            -A:    Use given address when setting up docker droplet. Skips creating ssh hop.
+                "
+                exit 0
+                ;;
+            A)
+                hop_private=$OPTARG
+                ;;
+            \?)
+                echo "Invalid option -$OPTARG" >&2
+                exit 1
+                ;;
+            :)
+                echo "Option -$OPTARG requires argument" >&2
+                exit 1
+                ;;
+        esac
+    done
+    shift $((OPTIND-1))
 
-# Load User values
-token=$2
-key=$1
+    # Load User values
+    key=$1
+    token=$2
 
-createDockerUserData() {
+    # Exit if key/token not specified
+    if [ -z "$key" ]; then
+        echo "No ssh key specified."
+        exit 1
+    fi
+
+    if [ -z "$token" ]; then
+        echo "No token specified."
+        exit 1
+    fi
+}
+
+
+create_docker_user_data() {
     # $1 is address
 
     local compose=$(<docker-compose-priv-testnet.yml)
@@ -86,7 +100,7 @@ createDockerUserData() {
     docker-compose -f /docker-compose-priv-testnet.yml up -d"
 }
 
-createServer() {
+create_server() {
     # $1 is name
     # $2 is size
     # $3 is image
@@ -100,6 +114,11 @@ createServer() {
 
     id=$(echo "$droplet" | jq -r ".droplet.id")
 
+    if [ "$id" = "null" ]; then
+        echo "Cannot start a droplet. Are your key/token valid?"
+        exit 1
+    fi
+
     status='waiting'
     echo "Waiting for $1:$id to finish activating"
     while [ "$status" != "active" ]; do 
@@ -107,10 +126,10 @@ createServer() {
       status=$(curl -X GET -H "Content-Type: application/json" -H "Authorization: Bearer $token" "https://api.digitalocean.com/v2/droplets/$id" 2>/dev/null | jq -r ".droplet.status")
     done
 
-    getAddrs "$1" $id 
+    get_addrs "$1" $id
 }
 
-getAddrs() {
+get_addrs() {
     # $1 is name
     # $2 is id 
     echo "Retrieving $1 private address"
@@ -121,9 +140,12 @@ getAddrs() {
 
 }
 
+# Read options & arguments
+read_args $@
+
 if [ -z "$hop_private" ]; then
     echo "Building SSH Hop droplet"
-    createServer hop-hive s-1vcpu-1gb ubuntu-16-04-x64 null
+    create_server hop-hive s-1vcpu-1gb ubuntu-16-04-x64 null
     hop_id=$id
     hop_public=$public
     hop_private=$private
@@ -134,8 +156,8 @@ fi
 
 
 echo "Building Docker droplet"
-createDockerUserData $hop_private
-createServer docker-hive s-4vcpu-8gb docker "$userdata"
+create_docker_user_data $hop_private
+create_server docker-hive s-4vcpu-8gb docker "$userdata"
 
 docker_id=$id
 docker_public=$public
