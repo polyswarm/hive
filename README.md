@@ -10,6 +10,7 @@ to IPFS.
 
 # Prereqs
 
+* jq `sudo apt-get install jq`
 * API token for DigitalOcean
   [(Instructions)](https://www.digitalocean.com/community/tutorials/how-to-use-the-digitalocean-api-v2)
 * SSH key ID from DigitalOcean
@@ -47,3 +48,20 @@ all of them again.
 
 To skip creating the ssh hop again, specify the `-A` argument with the address
 of the SSH hop.
+
+# Connect to docker droplet
+
+**Enable the ssh agent**
+```
+eval "$(ssh-agent -s)"
+```
+
+**Add your ssh key**
+```
+ssh-add /path/to/key
+```
+
+**Connect ssh through the ssh hop to the docker container**
+```
+ssh -A -i /path/to/key root@<hop public> ssh root@<docker private>
+```
