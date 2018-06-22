@@ -5,11 +5,11 @@ read_args() {
         case $opt in
             h)
                 echo "
-    usage: $0 [-h] [-A <hop_address>] <ssh key id> <digitalocean API token>
-        options:
-            -h:    Print this help message.
-            -A:    Use given address when setting up docker droplet. Skips creating ssh hop.
-                "
+usage: $0 [-h] [-A <hop_address>] <ssh key id> <digitalocean API token>
+    options:
+        -h:    Print this help message.
+        -A:    Use given address when setting up docker droplet. Skips creating ssh hop.
+"
                 exit 0
                 ;;
             A)
