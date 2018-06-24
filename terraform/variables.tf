@@ -1,14 +1,10 @@
-variable "access_key" {}
-variable "secret_key" {}
-variable "region" {
-	default = "us-east-1"
+variable "do_token" {}
+
+variable "port-ssh" {
+	default = "22"
 }
 
-variable "amis" {
-	type = "map"
-	default = {
-		"us-east-1" = "ami-b374d5a5"
-		"us-west-1" = "ami-4b32be2b"
-	}
+variable "port-dns" {
+	default = "53"
 }
 
