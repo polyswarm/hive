@@ -27,7 +27,7 @@ resource "digitalocean_tag" "hive-ssh-hop" {
 
 resource "digitalocean_ssh_key" "default" {
 	name 		= "Hive Terraform"
-	public_key 	= "${file(${var.public_key_path})}"
+	public_key 	= "${file("${var.public_key_path}")}"
 }
 
 
@@ -56,8 +56,17 @@ resource "digitalocean_droplet" "meta" {
 	ssh_keys		= ["${digitalocean_ssh_key.default.id}"]
 	tags			= ["${digitalocean_tag.hive-internal.id}"]
 
-	provisioner "local-exec" {
-		command = "docker-machine create --driver digitalocean --digitalocean-access-token ${var.do_token} ${digitalocean_droplet.meta.name}"
+	provisioner "remote-exec" {
+		inline = [
+			"curl -fsSL get.docker.com -o get-docker.sh",
+			"chmod +x get-docker.sh" ,
+			"sh get-docker.sh",
+		]
+		connection = {
+			type = "ssh"
+			user = "root"
+			private_key = "${file("${var.private_key_path}")}"
+		}
 	}
 
 }
@@ -137,7 +146,11 @@ resource "digitalocean_floating_ip" "ssh-hop" {
 	region = "${digitalocean_droplet.ssh-hop.region}"
 }
 
-output "ssh-hop-ip" {
+output "ip-ssh-hop" {
 	value = "${digitalocean_floating_ip.ssh-hop.ip_address}"
 } 
+
+output "ip-meta" {
+        value = "${digitalocean_droplet.meta.ipv4_address}"
+}
 

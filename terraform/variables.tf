@@ -11,3 +11,7 @@ variable "port-dns" {
 variable "public_key_path" {
 	default = "/home/user/.ssh/id.pub"
 }
+
+variable "private_key_path" {
+	default = "/home/user/.ssh/id"
+}
