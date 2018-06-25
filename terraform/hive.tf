@@ -27,8 +27,9 @@ resource "digitalocean_tag" "hive-ssh-hop" {
 
 resource "digitalocean_ssh_key" "default" {
 	name 		= "Hive Terraform"
-	public_key 	= "${file("/home/user/.ssh/id.pub")}"
+	public_key 	= "${file(${var.public_key_path})}"
 }
+
 
 resource "digitalocean_droplet" "ssh-hop" {
 	image 			= "ubuntu-18-04-x64"
@@ -45,6 +46,22 @@ resource "digitalocean_droplet" "ssh-hop" {
 	#user_data 		= ""
 	#volume_ids 		= ""
 }
+
+# TODO: a single droplet for everything but the SSH hop. we should decompose this.
+resource "digitalocean_droplet" "meta" {
+	image			= "ubuntu-18-04-x64"
+	name			= "meta"
+	region			= "sfo2"
+	size			= "1gb"
+	ssh_keys		= ["${digitalocean_ssh_key.default.id}"]
+	tags			= ["${digitalocean_tag.hive-internal.id}"]
+
+	provisioner "local-exec" {
+		command = "docker-machine create --driver digitalocean --digitalocean-access-token ${var.do_token} ${digitalocean_droplet.meta.name}"
+	}
+
+}
+
 
 /*
 resource "digitalocean_firewall" "hive" {
