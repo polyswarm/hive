@@ -46,6 +46,7 @@ resource "digitalocean_droplet" "ssh-hop" {
 	#volume_ids 		= ""
 }
 
+/*
 resource "digitalocean_firewall" "hive" {
 	# permit comms among "hive-ssh-hop" and "hive-internal" groups
 	# TODO: lock down protocols and ports
@@ -67,6 +68,7 @@ resource "digitalocean_firewall" "hive" {
 		},
 	]
 }
+
 
 resource "digitalocean_firewall" "hive-ssh-hop" {
 	# permit inbound to 22 on hop
@@ -111,6 +113,7 @@ resource "digitalocean_firewall" "hive-ssh-hop" {
 		},
 	]
 }
+*/
 
 resource "digitalocean_floating_ip" "ssh-hop" {
 	droplet_id = "${digitalocean_droplet.ssh-hop.id}"
