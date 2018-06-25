@@ -71,7 +71,7 @@ resource "digitalocean_firewall" "hive-ssh-hop" {
 	# permit outbound DNS to all (TODO: do we need this?)
  
 	name 		= "only-ssh-in-dns-out"
-	droplet_ids 	= ["$digitalocean_droplet.ssh-hop.id}"]
+	droplet_ids 	= ["${digitalocean_droplet.ssh-hop.id}"]
 	
 	inbound_rule = [
 		{	
