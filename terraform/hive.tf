@@ -33,7 +33,7 @@ resource "digitalocean_ssh_key" "default" {
 resource "digitalocean_droplet" "ssh-hop" {
 	image 			= "ubuntu-18-04-x64"
 	name 			= "ssh-hop-1"
-	region 			= "sf2"
+	region 			= "sfo2"
 	size 			= "1gb"
 	#backups 		= "false"
 	#monitoring 		= "false"
@@ -55,12 +55,14 @@ resource "digitalocean_firewall" "hive" {
 	
 	inbound_rule = [
 		{
+			port_range		= "all"
 			source_tags 		= ["hive-internal", "hive-ssh-hop"]
 		},
 	]
 
 	outbound_rule = [
 		{
+			port_range		= "all"
 			destination_tags 	= ["hive-internal", "hive-ssh-hop"]
 		},
 	]
@@ -76,7 +78,8 @@ resource "digitalocean_firewall" "hive-ssh-hop" {
 	inbound_rule = [
 		{	
 			protocol		= "tcp"
-			port_range		= "${var.port-ssh}"
+			#port_range		= "${var.port-ssh}"
+			port_range		= "22"
 			source_addresses 	= ["0.0.0.0/0"]
 		},
 
@@ -90,12 +93,14 @@ resource "digitalocean_firewall" "hive-ssh-hop" {
 	outbound_rule = [
 		{
 			protocol		= "tcp"
-			port_range		= "${var.port-dns}"
+			#port_range		= "${var.port-dns}"
+			port_range		= "53"
 			destination_addresses	= ["0.0.0.0/0"]
 		},
 		{
 			protocol		= "udp"
-			port_range		= "${var.port-dns}"
+			#port_range		= "${var.port-dns}"
+			port_range		= "53"
 			destination_addresses	= ["0.0.0.0/0"]
 		},
 
