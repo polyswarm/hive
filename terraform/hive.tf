@@ -71,9 +71,7 @@ resource "digitalocean_droplet" "meta" {
 
 }
 
-
-/*
-resource "digitalocean_firewall" "hive" {
+resource "digitalocean_firewall" "hive-internal" {
 	# permit comms among "hive-ssh-hop" and "hive-internal" groups
 	# TODO: lock down protocols and ports
 
@@ -82,6 +80,7 @@ resource "digitalocean_firewall" "hive" {
 	
 	inbound_rule = [
 		{
+			protocol		= "tcp" # NOTE: protocol is required if source_tags is specified due to a bug in DO's API
 			port_range		= "all"
 			source_tags 		= ["hive-internal", "hive-ssh-hop"]
 		},
@@ -89,13 +88,15 @@ resource "digitalocean_firewall" "hive" {
 
 	outbound_rule = [
 		{
-			port_range		= "all"
+			protocol		= "tcp" # NOTE: protocol is required if destination_tags is specified due to a bug in DO's API
+			port_range		= "all" 
 			destination_tags 	= ["hive-internal", "hive-ssh-hop"]
 		},
 	]
 }
 
 
+/*
 resource "digitalocean_firewall" "hive-ssh-hop" {
 	# permit inbound to 22 on hop
 	# permit outbound DNS to all (TODO: do we need this?)
