@@ -103,7 +103,6 @@ resource "digitalocean_firewall" "hive-internal" {
 	]
 }
 
-
 resource "digitalocean_firewall" "hive-ssh-hop" {
  
 	name 		= "only-ssh-in-dns-out"
