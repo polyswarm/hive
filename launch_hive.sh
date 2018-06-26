@@ -46,9 +46,6 @@ usage: $0 [-h] [-A <hop_address>] <ssh key id> <digitalocean API token>
     create_docker_user_data() {
         # $1 is address
 
-        local compose=$(<docker-compose-priv-testnet.yml)
-        local dockerfile=$(<Dockerfile)
-        local enode=$(<enode.sh)
         # Setup Docker user data
         userdata="#! /bin/bash
         # Add docker rules
@@ -91,14 +88,9 @@ usage: $0 [-h] [-A <hop_address>] <ssh key id> <digitalocean API token>
         curl -L https://github.com/docker/compose/releases/download/1.18.0/docker-compose-\`uname -s\`-\`uname -m\` -o /usr/local/bin/docker-compose
         chmod +x /usr/local/bin/docker-compose
 
-        echo \\\"$compose\\\" > ~/docker-compose-priv-testnet.yml
-        echo \\\"$dockerfile\\\" > ~/Dockerfile
-        echo \\\"$enode\\\" > ~/enode.sh
-
-        # Create output file for Contract addrs
-        mkdir ~/docker
-
-        docker-compose -f ~/docker-compose-priv-testnet.yml up -d"
+        # Create dirs for volumes
+        mkdir ~/contracts
+        mkdir ~/geth"
 }
 
 create_server() {
