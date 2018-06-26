@@ -49,9 +49,19 @@ all of them again.
 To skip creating the ssh hop again, specify the `-A` argument with the address
 of the SSH hop.
 
-# Get enode
+# Wrapping up
 
-Connect to the docker host, and run `cat docker/enode`
+Once the droplets are up, you will need to do a final step to get the hive 
+and running. 
+
+When `launch_hive.sh` finished, it printed the hop public address and docker private
+address. Grab both of these. Call `publish.sh` which will push up all the geth
+testnet files, & start up the docker containers. 
+
+After a few minutes, you will want to connect. On the server will be a couple
+very important files. In `/root/geth` you want to copy, `static-nodes.json.` In 
+`/root/contracts` you want to copy `polyswarmd.yml.` This contains the bootnode
+address for users to connect & the addresses for the PolySwarm contracts.
 
 # Connect to docker droplet
 
