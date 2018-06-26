@@ -49,6 +49,10 @@ all of them again.
 To skip creating the ssh hop again, specify the `-A` argument with the address
 of the SSH hop.
 
+# Get enode
+
+Connect to the docker host, and run `cat docker/enode`
+
 # Connect to docker droplet
 
 **Enable the ssh agent**
