@@ -71,76 +71,81 @@ resource "digitalocean_droplet" "meta" {
 
 }
 
+# NOTE: effectively treat protocol and port_range as required due to bugs in DO's API
 resource "digitalocean_firewall" "hive-internal" {
 	# permit comms among "hive-ssh-hop" and "hive-internal" groups
 	# TODO: lock down protocols and ports
 
-	name		= "hive-only"
+	name		= "hive-internal-only"
 	droplet_ids	= [] # TODO
 	
+	# permit inbound from hive-internal and hive-ssh-hop
 	inbound_rule = [
 		{
-			protocol		= "tcp" # NOTE: protocol is required if source_tags is specified due to a bug in DO's API
+			protocol		= "tcp" 
 			port_range		= "all"
 			source_tags 		= ["hive-internal", "hive-ssh-hop"]
 		},
 	]
 
+	# permit outbound to hive-internal
 	outbound_rule = [
 		{
-			protocol		= "tcp" # NOTE: protocol is required if destination_tags is specified due to a bug in DO's API
+			protocol		= "tcp" 
 			port_range		= "all" 
-			destination_tags 	= ["hive-internal", "hive-ssh-hop"]
-		},
-	]
-}
-
-
-/*
-resource "digitalocean_firewall" "hive-ssh-hop" {
-	# permit inbound to 22 on hop
-	# permit outbound DNS to all (TODO: do we need this?)
- 
-	name 		= "only-ssh-in-dns-out"
-	droplet_ids 	= ["${digitalocean_droplet.ssh-hop.id}"]
-	
-	inbound_rule = [
-		{	
-			protocol		= "tcp"
-			#port_range		= "${var.port-ssh}"
-			port_range		= "22"
-			source_addresses 	= ["0.0.0.0/0"]
-		},
-
-		# permit all inbound from "hive-internal" (not other ssh hops)
-		# TODO: check this
-		{
-			source_tags		= ["hive-internal"]
-		},
-	]
-
-	outbound_rule = [
-		{
-			protocol		= "tcp"
-			#port_range		= "${var.port-dns}"
-			port_range		= "53"
-			destination_addresses	= ["0.0.0.0/0"]
+			destination_tags 	= ["hive-internal"]
 		},
 		{
 			protocol		= "udp"
-			#port_range		= "${var.port-dns}"
-			port_range		= "53"
-			destination_addresses	= ["0.0.0.0/0"]
-		},
-
-		# permit all outbound to "hive-internal" (not other ssh hops)
-		# TODO: check this
-		{
+			port_range		= "all"
 			destination_tags	= ["hive-internal"]
 		},
 	]
 }
-*/
+
+
+resource "digitalocean_firewall" "hive-ssh-hop" {
+ 
+	name 		= "only-ssh-in-dns-out"
+	droplet_ids 	= ["${digitalocean_droplet.ssh-hop.id}"]
+	
+	# permit inbound SSH from *
+	inbound_rule = [
+		{	
+			protocol		= "tcp"
+			port_range		= "${var.port-ssh}"
+			source_addresses 	= ["0.0.0.0/0"]
+		},
+
+	]
+
+	# permit outbound DNS to * (TODO: do we need this)
+	# permit outbound all to hive-internal
+	outbound_rule = [
+		{
+			protocol		= "tcp"
+			port_range		= "${var.port-dns}"
+			destination_addresses	= ["0.0.0.0/0"]
+		},
+		{
+			protocol		= "udp"
+			port_range		= "${var.port-dns}"
+			destination_addresses	= ["0.0.0.0/0"]
+		},
+
+		# permit all outbound to "hive-internal" (not other ssh hops)
+		{
+			protocol		= "tcp"
+			port_range		= "all"
+			destination_tags	= ["hive-internal"]
+		},
+		{
+			protocol		= "udp"
+			port_range		= "all"
+			destination_tags	= ["hive-internal"]
+		},
+	]
+}
 
 resource "digitalocean_floating_ip" "ssh-hop" {
 	droplet_id = "${digitalocean_droplet.ssh-hop.id}"
