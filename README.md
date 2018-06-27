@@ -10,6 +10,7 @@ to IPFS.
 
 # Prereqs
 
+* jq `sudo apt-get install jq`
 * API token for DigitalOcean
   [(Instructions)](https://www.digitalocean.com/community/tutorials/how-to-use-the-digitalocean-api-v2)
 * SSH key ID from DigitalOcean
@@ -47,3 +48,34 @@ all of them again.
 
 To skip creating the ssh hop again, specify the `-A` argument with the address
 of the SSH hop.
+
+# Wrapping up
+
+Once the droplets are up, you will need to do a final step to get the hive 
+and running. 
+
+When `launch_hive.sh` finished, it printed the hop public address and docker private
+address. Grab both of these. Call `publish.sh` which will push up all the geth
+testnet files, & start up the docker containers. 
+
+After a few minutes, you will want to connect. On the server will be a couple
+very important files. In `/root/geth` you want to copy, `static-nodes.json.` In 
+`/root/contracts` you want to copy `polyswarmd.yml.` This contains the bootnode
+address for users to connect & the addresses for the PolySwarm contracts.
+
+# Connect to docker droplet
+
+**Enable the ssh agent**
+```
+eval "$(ssh-agent -s)"
+```
+
+**Add your ssh key**
+```
+ssh-add /path/to/key
+```
+
+**Connect ssh through the ssh hop to the docker container**
+```
+ssh -A -i /path/to/key root@<hop public> ssh root@<docker private>
+```

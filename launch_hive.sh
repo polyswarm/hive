@@ -25,79 +25,72 @@ usage: $0 [-h] [-A <hop_address>] <ssh key id> <digitalocean API token>
                 ;;
         esac
     done
-    shift $((OPTIND-1))
+        shift $((OPTIND-1))
 
-    # Load User values
-    key=$1
-    token=$2
+        # Load User values
+        key=$1
+        token=$2
 
-    # Exit if key/token not specified
-    if [ -z "$key" ]; then
-        echo "No ssh key specified."
-        exit 1
-    fi
+        # Exit if key/token not specified
+        if [ -z "$key" ]; then
+            echo "No ssh key specified."
+            exit 1
+        fi
 
-    if [ -z "$token" ]; then
-        echo "No token specified."
-        exit 1
-    fi
-}
+        if [ -z "$token" ]; then
+            echo "No token specified."
+            exit 1
+        fi
+    }
 
+    create_docker_user_data() {
+        # $1 is address
 
-create_docker_user_data() {
-    # $1 is address
+        # Setup Docker user data
+        userdata="#! /bin/bash
+        # Add docker rules
+        iptables -P INPUT ACCEPT
+        iptables -P OUTPUT ACCEPT
+        iptables -P FORWARD ACCEPT
+        iptables -F
 
-    local compose=$(<docker-compose-priv-testnet.yml)
-    # Setup Docker user data
-    userdata="#! /bin/bash
-    # Add docker rules
-    iptables -P INPUT ACCEPT
-    iptables -P OUTPUT ACCEPT
-    iptables -P FORWARD ACCEPT
-    iptables -F
-    
-    service docker restart
-    
-    # Allow SSH hop to access via ssh
-    iptables -A INPUT -i eth1 -p tcp -s $1 --dport 22 -j ACCEPT
-    
-    # Allow access to dockerd ports
-    iptables -A INPUT -p tcp --dport 2735 -j ACCEPT
-    iptables -A INPUT -p tcp --dport 2736 -j ACCEPT
-    
-    # Allow SSH hop access to polyswarmd
-    iptables -A INPUT -i eth1 -p tcp -s $1 --dport 31337 -j ACCEPT
-    iptables -A OUTPUT -o eth1 -p tcp -d $1 --sport 31337 -j ACCEPT
-    
-    # Allow ssh hop access to ipfs
-    iptables -A INPUT -i eth1 -p tcp -s $1 --dport 4001 -j ACCEPT
-    iptables -A OUTPUT -o eth1 -p tcp -d $1 --sport 4001 -j ACCEPT
-    
-    # Block all ports to docker containers from outside
-    iptables -A INPUT -i eth0 -p tcp --dport 31337 -j DROP
-    iptables -A INPUT -i eth0 -p tcp --dport 8545 -j DROP
-    iptables -A INPUT -i eth0 -p tcp --dport 4001 -j DROP
-    iptables -A INPUT -i eth0 -p tcp --dport 30303 -j DROP
-    iptables -A INPUT -i eth0 -p tcp --dport 7545 -j DROP
-    
-    # Allow access via loopback
-    iptables -A INPUT -i lo -j ACCEPT
-    
-    # Allow incoming connections that we initiated already
-    iptables -I INPUT -i eth0 -m state --state ESTABLISHED,RELATED -j ACCEPT
-    
-    # Reset policies to drop input & forward
-    iptables -P INPUT DROP 
-    iptables -P FORWARD DROP
-    
-    apt-get update
-    apt-get install iptables-persistent build-essential -y
-    curl -L https://github.com/docker/compose/releases/download/1.18.0/docker-compose-`uname -s`-`uname -m` -o /usr/local/bin/docker-compose
-    chmod +x /usr/local/bin/docker-compose
-    
-    echo \\\"$compose\\\" > docker-compose-priv-testnet.yml
-    
-    docker-compose -f /docker-compose-priv-testnet.yml up -d"
+        # Re-add Docker iptables rules
+        service docker restart
+
+        # Allow SSH hop to access via ssh
+        iptables -A INPUT -i eth1 -p tcp -s $1 --dport 22 -j ACCEPT
+
+        # Allow access to dockerd ports
+        iptables -A INPUT -p tcp --dport 2735 -j ACCEPT
+        iptables -A INPUT -p tcp --dport 2736 -j ACCEPT
+
+        # Allow SSH hop access to geth
+        iptables -A INPUT -i eth1 -p tcp -s $1 --dport 30303 -j ACCEPT
+        iptables -A OUTPUT -o eth1 -p tcp -d $1 --sport 30303 -j ACCEPT
+
+        # Block all ports to docker containers from outside
+        iptables -A INPUT -i eth0 -p udp --dport 30301 -j DROP
+        iptables -A INPUT -i eth0 -p tcp --dport 8545 -j DROP
+        iptables -A INPUT -i eth0 -p tcp --dport 30303 -j DROP
+
+        # Allow access via loopback
+        iptables -A INPUT -i lo -j ACCEPT
+
+        # Allow incoming connections that we initiated already
+        iptables -I INPUT -i eth0 -m state --state ESTABLISHED,RELATED -j ACCEPT
+
+        # Reset policies to drop input & forward
+        iptables -P INPUT DROP
+        iptables -P FORWARD DROP
+
+        apt-get update
+        apt-get install jq iptables-persistent build-essential -y
+        curl -L https://github.com/docker/compose/releases/download/1.18.0/docker-compose-\`uname -s\`-\`uname -m\` -o /usr/local/bin/docker-compose
+        chmod +x /usr/local/bin/docker-compose
+
+        # Create dirs for volumes
+        mkdir ~/contracts
+        mkdir ~/geth"
 }
 
 create_server() {
@@ -116,6 +109,7 @@ create_server() {
 
     if [ "$id" = "null" ]; then
         echo "Cannot start a droplet. Are your key/token valid?"
+        echo $droplet
         exit 1
     fi
 
@@ -132,7 +126,7 @@ create_server() {
 get_addrs() {
     # $1 is name
     # $2 is id 
-    echo "Retrieving $1 private address"
+    echo "Retrieving $1 addresses"
     local droplet=$(curl -X GET -H "Content-Type: application/json" -H "Authorization: Bearer $token" "https://api.digitalocean.com/v2/droplets/$2" 2>/dev/null)
  
     public=$(echo "$droplet" | jq -r ".droplet.networks.v4[0].ip_address")
@@ -152,8 +146,6 @@ if [ -z "$hop_private" ]; then
 else
     echo "SSH Hop already built. Using $hop_private"
 fi
-
-
 
 echo "Building Docker droplet"
 create_docker_user_data $hop_private
