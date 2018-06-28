@@ -9,3 +9,4 @@ polyswarmd/
 terraform.tfstate
 terraform.tfstate.backup
 secrets.tfvars
+*.backup

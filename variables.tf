@@ -1,17 +1,17 @@
 variable "do_token" {}
 
 variable "port-ssh" {
-	default = "22"
+  default = "22"
 }
 
 variable "port-dns" {
-	default = "53"
+  default = "53"
 }
 
 variable "public_key_path" {
-	default = "/home/user/.ssh/id.pub"
+  default = "/home/user/.ssh/id.pub"
 }
 
 variable "private_key_path" {
-	default = "/home/user/.ssh/id"
+  default = "/home/user/.ssh/id"
 }
