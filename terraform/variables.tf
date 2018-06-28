@@ -15,3 +15,5 @@ variable "public_key_path" {
 variable "private_key_path" {
   default = "/home/user/.ssh/id"
 }
+
+variable "region" {}

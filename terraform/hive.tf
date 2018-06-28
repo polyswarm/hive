@@ -32,7 +32,7 @@ resource "digitalocean_ssh_key" "default" {
 resource "digitalocean_droplet" "ssh-hop" {
   image    = "ubuntu-18-04-x64"
   name     = "ssh-hop-1"
-  region   = "sfo2"
+  region   = "${var.region}"
   size     = "1gb"
   ssh_keys = ["${digitalocean_ssh_key.default.id}"]
   tags     = ["${digitalocean_tag.hive-ssh-hop.id}"]
@@ -42,7 +42,7 @@ resource "digitalocean_droplet" "ssh-hop" {
 resource "digitalocean_droplet" "meta" {
   image    = "docker"
   name     = "meta"
-  region   = "sfo2"
+  region   = "${var.region}"
   size     = "8gb"
   ssh_keys = ["${digitalocean_ssh_key.default.id}"]
   tags     = ["${digitalocean_tag.hive-internal.id}"]
