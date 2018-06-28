@@ -7,3 +7,5 @@ if [ ! -d ".terraform/" ]; then
 fi
 
 terraform apply
+
+popd

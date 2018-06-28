@@ -102,14 +102,25 @@ resource "digitalocean_firewall" "hive-internal" {
   # permit comms among "hive-ssh-hop" and "hive-internal" groups  # TODO: lock down protocols and ports
 
   name        = "hive-internal-only"
-  droplet_ids = []                   # TODO
+  droplet_ids = ["${digitalocean_droplet.meta.id}"]
 
   # permit inbound from hive-internal and hive-ssh-hop
   inbound_rule = [
     {
       protocol    = "tcp"
-      port_range  = "1-65535"
+      port_range  = "1-31336"
       source_tags = ["hive-internal", "hive-ssh-hop"]
+    },
+    {
+      protocol    = "tcp"
+      port_range  = "31338-65535"
+      source_tags = ["hive-internal", "hive-ssh-hop"]
+    },
+    {
+      # Locking down 31337 (because polyswarmd has to run for ambassador/arbiter)
+      protocol    = "tcp"
+      port_range  = "31337"
+      source_tags = ["hive-internal"]
     },
   ]
 
