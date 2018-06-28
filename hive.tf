@@ -30,22 +30,12 @@ resource "digitalocean_ssh_key" "default" {
 }
 
 resource "digitalocean_droplet" "ssh-hop" {
-  image  = "ubuntu-18-04-x64"
-  name   = "ssh-hop-1"
-  region = "sfo2"
-  size   = "1gb"
-
-  #backups 		= "false"
-  #monitoring 		= "false"
-  #ipv6 			= "false"
-  #private_networking 	= "false"
+  image    = "ubuntu-18-04-x64"
+  name     = "ssh-hop-1"
+  region   = "sfo2"
+  size     = "1gb"
   ssh_keys = ["${digitalocean_ssh_key.default.id}"]
-
-  #resize_disk 		= "true"
-  tags = ["${digitalocean_tag.hive-ssh-hop.id}"]
-
-  #user_data 		= ""
-  #volume_ids 		= ""
+  tags     = ["${digitalocean_tag.hive-ssh-hop.id}"]
 }
 
 # TODO: a single droplet for everything but the SSH hop. we should decompose this.
