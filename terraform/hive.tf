@@ -33,7 +33,7 @@ resource "digitalocean_droplet" "ssh-hop" {
   image    = "ubuntu-18-04-x64"
   name     = "ssh-hop-1"
   region   = "${var.region}"
-  size     = "1gb"
+  size     = "s-1vcpu-1gb"
   ssh_keys = ["${digitalocean_ssh_key.default.id}"]
   tags     = ["${digitalocean_tag.hive-ssh-hop.id}"]
 }
@@ -43,28 +43,13 @@ resource "digitalocean_droplet" "meta" {
   image    = "docker"
   name     = "meta"
   region   = "${var.region}"
-  size     = "8gb"
+  size     = "s-4vcpu-8gb"
   ssh_keys = ["${digitalocean_ssh_key.default.id}"]
   tags     = ["${digitalocean_tag.hive-internal.id}"]
 
   provisioner "file" {
-    source      = "../docker-compose-hive.yml"
-    destination = "/root/docker-compose-hive.yml"
-
-    connection = {
-      type                = "ssh"
-      user                = "root"
-      private_key         = "${file("${var.private_key_path}")}"
-      bastion_private_key = "${file("${var.private_key_path}")}"
-      bastion_host        = "${digitalocean_droplet.ssh-hop.ipv4_address}"
-      bastion_user        = "root"
-      agent               = false
-    }
-  }
-
-  provisioner "file" {
-    source      = "../geth"
-    destination = "/root/geth"
+    source      = "../docker"
+    destination = "/root/docker"
 
     connection = {
       type                = "ssh"
@@ -79,10 +64,12 @@ resource "digitalocean_droplet" "meta" {
 
   provisioner "remote-exec" {
     inline = [
+      "mkdir /root/contracts",
       "curl -L https://github.com/docker/compose/releases/download/1.18.0/docker-compose-`uname -s`-`uname -m` -o /usr/local/bin/docker-compose",
       "chmod +x /usr/local/bin/docker-compose",
-      "docker-compose -f /root/docker-compose-hive.yml up -d bootnode",
-      "docker-compose -f /root/docker-compose-hive.yml up -d geth contract",
+      "pushd root",
+      "docker-compose -f ./docker/docker-compose-hive.yml up -d bootnode",
+      "docker-compose -f ./docker/docker-compose-hive.yml up -d",
     ]
 
     connection = {
@@ -99,16 +86,30 @@ resource "digitalocean_droplet" "meta" {
 
 # NOTE: effectively treat protocol and port_range as required due to bugs in DO's API
 resource "digitalocean_firewall" "hive-internal" {
-  # permit comms among "hive-ssh-hop" and "hive-internal" groups  # TODO: lock down protocols and ports
+  # permit comms among "hive-ssh-hop" and "hive-internal" groups
 
-  name        = "hive-internal-only"
+  name = "hive-internal-only"
+
   droplet_ids = ["${digitalocean_droplet.meta.id}"]
 
   # permit inbound from hive-internal and hive-ssh-hop
   inbound_rule = [
     {
+      # lock down ambassador port
       protocol    = "tcp"
-      port_range  = "1-31336"
+      port_range  = "1-341"
+      source_tags = ["hive-internal", "hive-ssh-hop"]
+    },
+    {
+      # lock down aribiter port
+      protocol    = "tcp"
+      port_range  = "343-351"
+      source_tags = ["hive-internal", "hive-ssh-hop"]
+    },
+    {
+      # lock down polyswarmd port
+      protocol    = "tcp"
+      port_range  = "353-31336"
       source_tags = ["hive-internal", "hive-ssh-hop"]
     },
     {
@@ -117,9 +118,9 @@ resource "digitalocean_firewall" "hive-internal" {
       source_tags = ["hive-internal", "hive-ssh-hop"]
     },
     {
-      # Locking down 31337 (because polyswarmd has to run for ambassador/arbiter)
+      # Locking down 31337 polyswarmd, ambassador & ipfs.
       protocol    = "tcp"
-      port_range  = "31337"
+      port_range  = "1-65535"
       source_tags = ["hive-internal"]
     },
   ]
