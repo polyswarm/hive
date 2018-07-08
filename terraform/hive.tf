@@ -95,21 +95,9 @@ resource "digitalocean_firewall" "hive-internal" {
   # permit inbound from hive-internal and hive-ssh-hop
   inbound_rule = [
     {
-      # lock down ambassador port
-      protocol    = "tcp"
-      port_range  = "1-341"
-      source_tags = ["hive-internal", "hive-ssh-hop"]
-    },
-    {
-      # lock down aribiter port
-      protocol    = "tcp"
-      port_range  = "343-351"
-      source_tags = ["hive-internal", "hive-ssh-hop"]
-    },
-    {
       # lock down polyswarmd port
       protocol    = "tcp"
-      port_range  = "353-31336"
+      port_range  = "1-31336"
       source_tags = ["hive-internal", "hive-ssh-hop"]
     },
     {
@@ -118,7 +106,7 @@ resource "digitalocean_firewall" "hive-internal" {
       source_tags = ["hive-internal", "hive-ssh-hop"]
     },
     {
-      # Locking down 31337 polyswarmd, ambassador & ipfs.
+      # Locking down 31337 polyswarmd.
       protocol    = "tcp"
       port_range  = "1-65535"
       source_tags = ["hive-internal"]
