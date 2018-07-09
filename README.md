@@ -43,11 +43,16 @@ eval "$(ssh-agent -s)"
 ssh-add /home/user/.ssh/id
 ```
 
-### Connect ssh through the ssh hop to the docker container
+### Connect ssh through the ssh hop to the docker droplet
 
 ```bash
 ssh -A -i /home/user/.ssh/id root@gate.polyswarm.network ssh root@<docker_public_ip>
 ```
+
+## Find polyswarmd.yml so users can get use run their own
+
+1. Connect to droplet
+2. `cat /root/contracts/polyswarmd.yml`
 
 ## Timeouts
 
