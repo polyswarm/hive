@@ -133,8 +133,18 @@ resource "digitalocean_firewall" "hive-internal" {
   inbound_rule = [
     {
       protocol    = "tcp"
-      port_range  = "1-65535"
+      port_range  = "22"
       source_tags = ["hive-internal", "hive-ssh-hop"]
+    },
+    {
+      protocol    = "tcp"
+      port_range  = "31337"
+      source_tags = ["hive-internal", "hive-ssh-hop"]
+    },
+    {
+      protocol    = "tcp"
+      port_range  = "1-65535"
+      source_tags = ["hive-internal"]
     },
   ]
 
