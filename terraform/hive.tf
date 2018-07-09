@@ -106,7 +106,6 @@ resource "digitalocean_firewall" "hive-internal" {
       source_tags = ["hive-internal", "hive-ssh-hop"]
     },
     {
-      # Locking down 31337 polyswarmd.
       protocol    = "tcp"
       port_range  = "1-65535"
       source_tags = ["hive-internal"]
