@@ -1,23 +1,59 @@
 # PolySwarm Hive
 
-This project is for the easy setup of a PolySwarm test/dev network on
-DigitalOcean. 
+Easy stand up & management of DigitalOcean droplets for a PolySwarm testnet.`
 
-To run, you need to first get a token from DigitalOcean's website. After
-grabbing it, store it in a file called `token` in the root of this project. The
-script uses that token to create the cURL commands that will create the doplets.
+## Prerequisites
 
-In addition, you need to add some ssh keys to the website. When you create an
-ssh key, grab the id for the ssh key, and put in into a file called `key`. This
-will tell it what ssh key to add to the droplets so that someone can ssh in and
-configure them further if need be (Like adding valid ssh keys to let devs access
-the hive).
+* API token for DigitalOcean
+  [(Instructions)](https://www.digitalocean.com/community/tutorials/how-to-use-the-digitalocean-api-v2)
+* Unencrypted SSH Key in `/home/user/.ssh/id`. (This is a terraform requirement: Use `ssh-keygen` to create it. Don't enter a password)
+* Install Terraform [(Instructions)](https://www.terraform.io/intro/getting-started/install.html)
 
-# What it creates
+## Launch it
 
-This will open two droplets. The first is an ssh hop. Users need to ssh to our
-box, or transparently connect through to the next box. The second is running
-polyswarmd, geth and ipfs. polyswarmd is running on 31337 and will allow a user
-to create, read, and modify bounties/assertions on the test PolySwarm network. 
+Run `./launch_hive.sh`.
 
-IPFS is running on port 5001 and you can grab/create files there.
+It will prompt for a token, paste the one you grabed from DigitalOcean.
+
+Next, it will prompt for a region. You can find a list of regions on the right hand side [here](https://status.digitalocean.com/).
+
+After that, it should run to completion.
+
+## Re-create the meta droplet.
+
+Sometimes you will want to recreate the meta droplet, without changing the ssh hop. This is easy to do. Just delete the droplet in the digital ocean UI, and run the following command.
+
+```bash
+pushd terraform && terraform state rm digitalocean_droplet.meta && popd
+```
+
+Run `./launch_hive.sh` again and it will rebuild the droplet for you.
+
+## Connect to docker droplet
+
+### Enable the ssh agent
+
+```bash
+eval "$(ssh-agent -s)"
+```
+
+### Add your ssh key
+
+```bash
+ssh-add /home/user/.ssh/id
+```
+
+### Connect ssh through the ssh hop to the docker droplet
+
+```bash
+ssh -A -i /home/user/.ssh/id root@gate.polyswarm.network ssh root@<docker_public_ip>
+```
+
+## Find polyswarmd.yml so users can get use run their own
+
+1. Connect to droplet
+2. `cat /root/contracts/polyswarmd.yml`
+
+## Timeouts
+
+Sometimes, when building the hive the file provisioner will fail. This is a problem that arises within terraform using a bastion host (as we are). Just run `./launch_hive.sh` with the same region again, and it should succeed.
