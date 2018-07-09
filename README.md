@@ -1,81 +1,54 @@
 # PolySwarm Hive
 
-This project is for the easy setup of a PolySwarm test/dev network on
-DigitalOcean. 
+Easy stand up & management of DigitalOcean droplets for a PolySwarm testnet.`
 
-It creates two droplets, one ssh hop & one docker container that spins up, geth,
-IPFS, and polyswarmd. The docker droplet has a firewall preventing access from
-anywhere but the ssh hop. It only allows ssh, access to polyswarmd, and access
-to IPFS.
+## Prerequisites
 
-# Prereqs
-
-* jq `sudo apt-get install jq`
 * API token for DigitalOcean
   [(Instructions)](https://www.digitalocean.com/community/tutorials/how-to-use-the-digitalocean-api-v2)
-* SSH key ID from DigitalOcean
-  [(Instructions)](https://developers.digitalocean.com/documentation/v2/#ssh-keys)
+* Unencrypted SSH Key in `/home/user/.ssh/id`. (This is a terraform requirement: Use `ssh-keygen` to create it. Don't enter a password)
+* Install Terraform [(Instructions)](https://www.terraform.io/intro/getting-started/install.html)
 
-For ease of use, you can use the follow curl statement to get the SSH key IDs.
-Make sure to substitue your token for `<token>`
+## Launch it
 
-```
-curl -X GET -H "Content-Type: application/json" -H "Authorization: Bearer
-<token>" "https://api.digitalocean.com/v2/account/keys"
-```
+Run `./launch_hive.sh`.
 
-# Launching it
+It will prompt for a token, paste the one you grabed from DigitalOcean.
 
-If you run `./launch_hive -h` It will show the following help message.
+Next, it will prompt for a region. You can find a list of regions on the right hand side [here](https://status.digitalocean.com/).
 
-```
-usage: launch_hive.sh [-h] [-A <hop_address>] <ssh key id> <digitalocean API
-token>
-        options:
-            -h:    Print this help message.
-            -A:    Use given address when setting up docker droplet. Skips
-creating ssh hop.
+After that, it should run to completion.
+
+## Re-create the meta droplet.
+
+Sometimes you will want to recreate the meta droplet, without changing the ssh hop. This is easy to do. Just delete the droplet in the digital ocean UI, and run the following command.
+
+```bash
+pushd terraform && terraform state rm digitalocean_droplet.meta && popd
 ```
 
-For the first time it is best to run `./launch_hive.sh <ssh> <token>`. You will
-need both parts up, or the docker droplet will be useless.
+Run `./launch_hive.sh` again and it will rebuild the droplet for you.
 
-After that, it is quicker if you don't need to restart the ssh hop each time,
-because creating droplets takes a couple minutes.
+## Connect to docker droplet
 
-Additionally, if you grant access to other ssh keys, you would have to configure
-all of them again.
+### Enable the ssh agent
 
-To skip creating the ssh hop again, specify the `-A` argument with the address
-of the SSH hop.
-
-# Wrapping up
-
-Once the droplets are up, you will need to do a final step to get the hive 
-and running. 
-
-When `launch_hive.sh` finished, it printed the hop public address and docker private
-address. Grab both of these. Call `publish.sh` which will push up all the geth
-testnet files, & start up the docker containers. 
-
-After a few minutes, you will want to connect. On the server will be a couple
-very important files. In `/root/geth` you want to copy, `static-nodes.json.` In 
-`/root/contracts` you want to copy `polyswarmd.yml.` This contains the bootnode
-address for users to connect & the addresses for the PolySwarm contracts.
-
-# Connect to docker droplet
-
-**Enable the ssh agent**
-```
+```bash
 eval "$(ssh-agent -s)"
 ```
 
-**Add your ssh key**
-```
-ssh-add /path/to/key
+### Add your ssh key
+
+```bash
+ssh-add /home/user/.ssh/id
 ```
 
-**Connect ssh through the ssh hop to the docker container**
+### Connect ssh through the ssh hop to the docker container
+
+```bash
+ssh -A -i /home/user/.ssh/id root@gate.polyswarm.network ssh root@<docker_public_ip>
 ```
-ssh -A -i /path/to/key root@<hop public> ssh root@<docker private>
-```
+
+## Timeouts
+
+Sometimes, when building the hive the file provisioner will fail. This is a problem that arises within terraform using a bastion host (as we are). Just run `./launch_hive.sh` with the same region again, and it should succeed.
