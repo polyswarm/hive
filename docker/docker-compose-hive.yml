@@ -23,7 +23,7 @@ services:
         depends_on:
             - homechain
             - ipfs
-            - contract
+            - contracts
         environment:
             - PYTHONUNBUFFERED=1
             - HOME_ETH_URI=http://homechain:8545
@@ -34,7 +34,7 @@ services:
         command: ["./scripts/wait_for_truffle.sh", "polyswarmd"]
         volumes:
             - "contracts:/etc/polyswarmd"
-    contract:
+    contracts:
         depends_on:
             - homechain
             - sidechain
@@ -48,6 +48,15 @@ services:
             - ARBITER=0x34e583cf9c1789c3141538eec77d9f0b8f7e89f2
         volumes:
             - "contracts:/build"
+    ipfs:
+        image: "ipfs/go-ipfs"
+        environment:
+            - IPFS_BIND_IP=0.0.0.0
+        ports:
+            - "4001:4001"
+        volumes:
+            - "ipfs-export:/export"
+            - "ipfs-data:/data/ipfs"
     ambassador:
         image: "polyswarm/ambassador"
         depends_on:
@@ -56,6 +65,7 @@ services:
           - POLYSWARMD_HOST=polyswarmd
           - POLYSWARMD_PORT=31337
         command: "./wait_and_run.sh"
+        restart: always
     arbiter:
         image: "polyswarm/arbiter"
         depends_on:
@@ -69,15 +79,6 @@ services:
             - PASSWORD=password
             - CHAIN=home
         command: ["./scripts/wait_for_it.sh", "-t", "0", "polyswarmd:31337", "--", "python3", "arbiter.py", "--backend", "verbatim"]
-    ipfs:
-        image: "ipfs/go-ipfs"
-        environment:
-            - IPFS_BIND_IP=0.0.0.0
-        ports:
-            - "4001:4001"
-        volumes:
-            - "ipfs-export:/export"
-            - "ipfs-data:/data/ipfs"
 volumes:
     contracts:
         driver_opts:
