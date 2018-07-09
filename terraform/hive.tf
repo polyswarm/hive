@@ -132,20 +132,9 @@ resource "digitalocean_firewall" "hive-internal" {
   # permit inbound from hive-internal and hive-ssh-hop
   inbound_rule = [
     {
-      # lock down polyswarmd port
-      protocol    = "tcp"
-      port_range  = "1-31336"
-      source_tags = ["hive-internal", "hive-ssh-hop"]
-    },
-    {
-      protocol    = "tcp"
-      port_range  = "31338-65535"
-      source_tags = ["hive-internal", "hive-ssh-hop"]
-    },
-    {
       protocol    = "tcp"
       port_range  = "1-65535"
-      source_tags = ["hive-internal"]
+      source_tags = ["hive-internal", "hive-ssh-hop"]
     },
   ]
 
