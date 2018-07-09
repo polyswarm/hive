@@ -39,9 +39,10 @@ services:
             - HOME_CHAIN=http://homechain:8545
             - SIDE_CHAIN=http://sidechain:8545
             - IPFS=http://ipfs:5001
-            - ARBITER=0x34e583cf9c1789c3141538eec77d9f0b8f7e89f2
+            - OPTIONS=/config/users.yml
         volumes:
             - "contracts:/build"
+            - "./config:/config"
     ipfs:
         image: "ipfs/go-ipfs"
         environment:
@@ -76,8 +77,8 @@ services:
 volumes:
     contracts:
         driver_opts:
-            type: none
-            device: /root/contracts
-            o: bind
+                type: none
+                device: /root/contracts
+                o: bind
     ipfs-export:
     ipfs-data:
