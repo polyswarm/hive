@@ -36,6 +36,36 @@ resource "digitalocean_droplet" "ssh-hop" {
   size     = "s-1vcpu-1gb"
   ssh_keys = ["${digitalocean_ssh_key.default.id}"]
   tags     = ["${digitalocean_tag.hive-ssh-hop.id}"]
+
+  provisioner "file" {
+    source      = "../authorized"
+    destination = "/root/authorized"
+
+    connection = {
+      type        = "ssh"
+      user        = "root"
+      private_key = "${file("${var.private_key_path}")}"
+      agent       = false
+    }
+  }
+
+  provisioner "remote-exec" {
+    # Confirm user is added before adding the key
+    inline = [
+      "cd /root/authorized",
+      "for i in ./*; do",
+      "  if [ -d $i ]; then",
+      "    NAME=$(basename $i)",
+      "    useradd $NAME",
+      "    if [ $? -eq 0 ]; then",
+      "      mkdir -p /home/$NAME/.ssh",
+      "      cat $NAME/id.pub > /home/$NAME/.ssh/authorized_keys",
+      "    fi",
+      "  fi",
+      "done",
+      "cd",
+    ]
+  }
 }
 
 # TODO: a single droplet for everything but the SSH hop. we should decompose this.

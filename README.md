@@ -9,6 +9,17 @@ Easy stand up & management of DigitalOcean droplets for a PolySwarm testnet.`
 * Unencrypted SSH Key in `/home/user/.ssh/id`. (This is a terraform requirement: Use `ssh-keygen` to create it. Don't enter a password)
 * Install Terraform [(Instructions)](https://www.terraform.io/intro/getting-started/install.html)
 
+## Add users
+
+To grant a new user access you need to create a directory in `authorized/`. This dir should be their username, and then put their public key inside, titled `id.pub`.
+
+```bash
+.
+├── authorized
+│   └── <username>
+│       └── id.pub
+```
+
 ## Launch it
 
 Run `./launch_hive.sh`.
@@ -19,7 +30,7 @@ Next, it will prompt for a region. You can find a list of regions on the right h
 
 After that, it should run to completion.
 
-## Re-create the meta droplet.
+## Re-create the meta droplet
 
 Sometimes you will want to recreate the meta droplet, without changing the ssh hop. This is easy to do. Just delete the droplet in the digital ocean UI, and run the following command.
 
