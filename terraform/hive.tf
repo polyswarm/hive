@@ -65,6 +65,13 @@ resource "digitalocean_droplet" "ssh-hop" {
       "done",
       "cd",
     ]
+
+    connection = {
+      type        = "ssh"
+      user        = "root"
+      private_key = "${file("${var.private_key_path}")}"
+      agent       = false
+    }
   }
 }
 
@@ -202,11 +209,23 @@ resource "digitalocean_floating_ip" "ssh-hop" {
   region     = "${digitalocean_droplet.ssh-hop.region}"
 }
 
+resource "digitalocean_floating_ip" "meta" {
+  droplet_id = "${digitalocean_droplet.meta.id}"
+  region     = "${digitalocean_droplet.meta.region}"
+}
+
 resource "digitalocean_record" "gate" {
   domain = "polyswarm.network"
   type   = "A"
   name   = "gate"
   value  = "${digitalocean_floating_ip.ssh-hop.ip_address}"
+}
+
+resource "digitalocean_record" "polyswarmd" {
+  domain = "polyswarm.network"
+  type   = "A"
+  name   = "polyswarmd"
+  value  = "${digitalocean_floating_ip.meta.ip_address}"
 }
 
 output "ip-ssh-hop" {
