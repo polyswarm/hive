@@ -60,11 +60,20 @@ resource "digitalocean_droplet" "ssh-hop" {
       "    if [ $? -eq 0 ]; then",
       "      mkdir -p /home/$NAME/.ssh",
       "      cat $NAME/id.pub > /home/$NAME/.ssh/authorized_keys",
+      "      chmod -R 700 /home/$NAME/",
+      "      chown -hR $NAME:$NAME /home/$NAME/",
       "    fi",
       "  fi",
       "done",
       "cd",
     ]
+
+    connection = {
+      type        = "ssh"
+      user        = "root"
+      private_key = "${file("${var.private_key_path}")}"
+      agent       = false
+    }
   }
 }
 
@@ -125,14 +134,13 @@ resource "digitalocean_firewall" "hive-internal" {
   # permit inbound from hive-internal and hive-ssh-hop
   inbound_rule = [
     {
-      # lock down polyswarmd port
       protocol    = "tcp"
-      port_range  = "1-31336"
+      port_range  = "22"
       source_tags = ["hive-internal", "hive-ssh-hop"]
     },
     {
       protocol    = "tcp"
-      port_range  = "31338-65535"
+      port_range  = "31337"
       source_tags = ["hive-internal", "hive-ssh-hop"]
     },
     {
@@ -202,11 +210,23 @@ resource "digitalocean_floating_ip" "ssh-hop" {
   region     = "${digitalocean_droplet.ssh-hop.region}"
 }
 
+resource "digitalocean_floating_ip" "meta" {
+  droplet_id = "${digitalocean_droplet.meta.id}"
+  region     = "${digitalocean_droplet.meta.region}"
+}
+
 resource "digitalocean_record" "gate" {
   domain = "polyswarm.network"
   type   = "A"
   name   = "gate"
   value  = "${digitalocean_floating_ip.ssh-hop.ip_address}"
+}
+
+resource "digitalocean_record" "polyswarmd" {
+  domain = "polyswarm.network"
+  type   = "A"
+  name   = "polyswarmd"
+  value  = "${digitalocean_floating_ip.meta.ip_address}"
 }
 
 output "ip-ssh-hop" {
