@@ -233,10 +233,10 @@ resource "digitalocean_record" "gate" {
   value  = "${digitalocean_floating_ip.ssh-hop.ip_address}"
 }
 
-resource "digitalocean_record" "polyswarmd" {
+resource "digitalocean_record" "hive" {
   domain = "polyswarm.network"
   type   = "A"
-  name   = "polyswarmd"
+  name   = "hive"
   value  = "${digitalocean_floating_ip.meta.ip_address}"
 }
 
