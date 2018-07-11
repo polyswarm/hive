@@ -123,6 +123,16 @@ resource "digitalocean_droplet" "meta" {
   }
 }
 
+resource "digitalocean_floating_ip" "ssh-hop" {
+  droplet_id = "${digitalocean_droplet.ssh-hop.id}"
+  region     = "${digitalocean_droplet.ssh-hop.region}"
+}
+
+resource "digitalocean_floating_ip" "meta" {
+  droplet_id = "${digitalocean_droplet.meta.id}"
+  region     = "${digitalocean_droplet.meta.region}"
+}
+
 # NOTE: effectively treat protocol and port_range as required due to bugs in DO's API
 resource "digitalocean_firewall" "hive-internal" {
   # permit comms among "hive-ssh-hop" and "hive-internal" groups
@@ -202,17 +212,18 @@ resource "digitalocean_firewall" "hive-ssh-hop" {
       port_range       = "1-65535"
       destination_tags = ["hive-internal"]
     },
+    {
+      # permit all outbound to "hive-internal" (not other ssh hops)
+      protocol              = "tcp"
+      port_range            = "1-65535"
+      destination_addresses = ["${digitalocean_floating_ip.meta.ip_address}"]
+    },
+    {
+      protocol              = "udp"
+      port_range            = "1-65535"
+      destination_addresses = ["${digitalocean_floating_ip.meta.ip_address}"]
+    },
   ]
-}
-
-resource "digitalocean_floating_ip" "ssh-hop" {
-  droplet_id = "${digitalocean_droplet.ssh-hop.id}"
-  region     = "${digitalocean_droplet.ssh-hop.region}"
-}
-
-resource "digitalocean_floating_ip" "meta" {
-  droplet_id = "${digitalocean_droplet.meta.id}"
-  region     = "${digitalocean_droplet.meta.region}"
 }
 
 resource "digitalocean_record" "gate" {
