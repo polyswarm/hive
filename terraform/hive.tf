@@ -58,6 +58,7 @@ resource "digitalocean_droplet" "ssh-hop" {
       "    NAME=$(basename $i)",
       "    useradd $NAME",
       "    if [ $? -eq 0 ]; then",
+      "      chsh -s /bin/true $NAME",
       "      mkdir -p /home/$NAME/.ssh",
       "      cat $NAME/id.pub > /home/$NAME/.ssh/authorized_keys",
       "      chmod -R 700 /home/$NAME/",
