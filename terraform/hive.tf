@@ -51,10 +51,20 @@ resource "digitalocean_droplet" "ssh-hop" {
 
   provisioner "remote-exec" {
     # Confirm user is added before adding the key
+    script = "../scripts/create_users.sh"
+
+    connection = {
+      type        = "ssh"
+      user        = "root"
+      private_key = "${file("${var.private_key_path}")}"
+      agent       = false
+    }
+  }
+
+  provisioner "remote-exec" {
+    # Confirm user is added before adding the key
     inline = [
-      "cd /root/authorized",
-      "chmod 755 create_users.sh",
-      "bash create_users.sh",
+      "echo PermitOpen=hive.polyswarm.network:31337 > /etc/ssh/ssh_config",
     ]
 
     connection = {
