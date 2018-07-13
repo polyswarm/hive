@@ -53,20 +53,8 @@ resource "digitalocean_droplet" "ssh-hop" {
     # Confirm user is added before adding the key
     inline = [
       "cd /root/authorized",
-      "for i in ./*; do",
-      "  if [ -d $i ]; then",
-      "    NAME=$(basename $i)",
-      "    useradd $NAME",
-      "    if [ $? -eq 0 ]; then",
-      "      chsh -s /bin/true $NAME",
-      "      mkdir -p /home/$NAME/.ssh",
-      "      cat $NAME/id.pub > /home/$NAME/.ssh/authorized_keys",
-      "      chmod -R 700 /home/$NAME/",
-      "      chown -hR $NAME:$NAME /home/$NAME/",
-      "    fi",
-      "  fi",
-      "done",
-      "cd",
+      "chmod 755 create_users.sh",
+      "bash create_users.sh",
     ]
 
     connection = {
@@ -108,7 +96,6 @@ resource "digitalocean_droplet" "meta" {
       "curl -L https://github.com/docker/compose/releases/download/1.18.0/docker-compose-`uname -s`-`uname -m` -o /usr/local/bin/docker-compose",
       "chmod +x /usr/local/bin/docker-compose",
       "pushd root",
-      "docker-compose -f ./docker/docker-compose-hive.yml up -d bootnode",
       "docker-compose -f ./docker/docker-compose-hive.yml up -d",
     ]
 
