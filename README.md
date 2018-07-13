@@ -32,13 +32,12 @@ After that, it should run to completion.
 
 ## Re-create the meta droplet
 
-Sometimes you will want to recreate the meta droplet, without changing the ssh hop. This is easy to do. Just delete the droplet in the digital ocean UI, and run the following command.
-
 ```bash
-pushd terraform && terraform state rm digitalocean_droplet.meta && popd
+cd terraform/
+terraform destroy digitalocean_droplet.meta
+cd ..`
+./launch_hive.sh
 ```
-
-Run `./launch_hive.sh` again and it will rebuild the droplet for you.
 
 ## Connect to docker droplet
 
