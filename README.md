@@ -70,11 +70,6 @@ curl http://localhost:31337/balances/<address>/nct
 curl http://localhost:31337/balances/<address>/eth
 ```
 
-## Find polyswarmd.yml so users can get use run their own
-
-1. Connect to droplet
-2. `cat /root/contracts/polyswarmd.yml`
-
 ## Timeouts
 
 Sometimes, when building the hive the file provisioner will fail. This is a problem that arises within terraform using a bastion host (as we are). Just run `./launch_hive.sh` with the same region again, and it should succeed.
