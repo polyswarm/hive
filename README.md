@@ -55,8 +55,19 @@ ssh-add /home/user/.ssh/id
 
 ### Connect ssh through the ssh hop to the docker droplet
 
+Use the following commands to open up a persistent SSH tunnel to our Hive.
+
 ```bash
-ssh -A -i /home/user/.ssh/id root@gate.polyswarm.network ssh root@<docker_public_ip>
+tmux
+ssh -L 31337:hive.polyswarm.network:31337 user@gate.polyswarm.network
+```
+
+Once the connection is established, you can test with some basic routes.
+
+```bash
+curl http://localhost:31337/bounties
+curl http://localhost:31337/balances/<address>/nct
+curl http://localhost:31337/balances/<address>/eth
 ```
 
 ## Find polyswarmd.yml so users can get use run their own
