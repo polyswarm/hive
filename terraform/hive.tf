@@ -60,20 +60,6 @@ resource "digitalocean_droplet" "ssh-hop" {
       agent       = false
     }
   }
-
-  provisioner "remote-exec" {
-    # Confirm user is added before adding the key
-    inline = [
-      "echo PermitOpen=hive.polyswarm.network:31337 > /etc/ssh/ssh_config",
-    ]
-
-    connection = {
-      type        = "ssh"
-      user        = "root"
-      private_key = "${file("${var.private_key_path}")}"
-      agent       = false
-    }
-  }
 }
 
 # TODO: a single droplet for everything but the SSH hop. we should decompose this.
