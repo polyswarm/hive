@@ -32,9 +32,11 @@ After that, it should run to completion.
 
 ## Re-create the meta droplet
 
+This set of commands will mark the meta droplet for destruction and then rebuild it when you call `lauch_hive`.
+
 ```bash
 cd terraform/
-terraform destroy digitalocean_droplet.meta
+terraform taint digitalocean_droplet.meta
 cd ..`
 ./launch_hive.sh
 ```
