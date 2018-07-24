@@ -32,13 +32,12 @@ After that, it should run to completion.
 
 ## Re-create the meta droplet
 
-Sometimes you will want to recreate the meta droplet, without changing the ssh hop. This is easy to do. Just delete the droplet in the digital ocean UI, and run the following command.
-
 ```bash
-pushd terraform && terraform state rm digitalocean_droplet.meta && popd
+cd terraform/
+terraform destroy digitalocean_droplet.meta
+cd ..`
+./launch_hive.sh
 ```
-
-Run `./launch_hive.sh` again and it will rebuild the droplet for you.
 
 ## Connect to docker droplet
 
@@ -56,14 +55,20 @@ ssh-add /home/user/.ssh/id
 
 ### Connect ssh through the ssh hop to the docker droplet
 
+Use the following commands to open up a persistent SSH tunnel to our Hive.
+
 ```bash
-ssh -A -i /home/user/.ssh/id root@gate.polyswarm.network ssh root@<docker_public_ip>
+tmux
+ssh -L 31337:hive.polyswarm.network:31337 user@gate.polyswarm.network
 ```
 
-## Find polyswarmd.yml so users can get use run their own
+Once the connection is established, you can test with some basic routes.
 
-1. Connect to droplet
-2. `cat /root/contracts/polyswarmd.yml`
+```bash
+curl http://localhost:31337/bounties
+curl http://localhost:31337/balances/<address>/nct
+curl http://localhost:31337/balances/<address>/eth
+```
 
 ## Timeouts
 

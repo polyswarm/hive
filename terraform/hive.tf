@@ -51,22 +51,7 @@ resource "digitalocean_droplet" "ssh-hop" {
 
   provisioner "remote-exec" {
     # Confirm user is added before adding the key
-    inline = [
-      "cd /root/authorized",
-      "for i in ./*; do",
-      "  if [ -d $i ]; then",
-      "    NAME=$(basename $i)",
-      "    useradd $NAME",
-      "    if [ $? -eq 0 ]; then",
-      "      mkdir -p /home/$NAME/.ssh",
-      "      cat $NAME/id.pub > /home/$NAME/.ssh/authorized_keys",
-      "      chmod -R 700 /home/$NAME/",
-      "      chown -hR $NAME:$NAME /home/$NAME/",
-      "    fi",
-      "  fi",
-      "done",
-      "cd",
-    ]
+    script = "../scripts/create_users.sh"
 
     connection = {
       type        = "ssh"
@@ -107,7 +92,6 @@ resource "digitalocean_droplet" "meta" {
       "curl -L https://github.com/docker/compose/releases/download/1.18.0/docker-compose-`uname -s`-`uname -m` -o /usr/local/bin/docker-compose",
       "chmod +x /usr/local/bin/docker-compose",
       "pushd root",
-      "docker-compose -f ./docker/docker-compose-hive.yml up -d bootnode",
       "docker-compose -f ./docker/docker-compose-hive.yml up -d",
     ]
 
@@ -121,6 +105,16 @@ resource "digitalocean_droplet" "meta" {
       agent               = false
     }
   }
+}
+
+resource "digitalocean_floating_ip" "ssh-hop" {
+  droplet_id = "${digitalocean_droplet.ssh-hop.id}"
+  region     = "${digitalocean_droplet.ssh-hop.region}"
+}
+
+resource "digitalocean_floating_ip" "meta" {
+  droplet_id = "${digitalocean_droplet.meta.id}"
+  region     = "${digitalocean_droplet.meta.region}"
 }
 
 # NOTE: effectively treat protocol and port_range as required due to bugs in DO's API
@@ -202,17 +196,18 @@ resource "digitalocean_firewall" "hive-ssh-hop" {
       port_range       = "1-65535"
       destination_tags = ["hive-internal"]
     },
+    {
+      # permit all outbound to "hive-internal" (not other ssh hops)
+      protocol              = "tcp"
+      port_range            = "1-65535"
+      destination_addresses = ["${digitalocean_floating_ip.meta.ip_address}"]
+    },
+    {
+      protocol              = "udp"
+      port_range            = "1-65535"
+      destination_addresses = ["${digitalocean_floating_ip.meta.ip_address}"]
+    },
   ]
-}
-
-resource "digitalocean_floating_ip" "ssh-hop" {
-  droplet_id = "${digitalocean_droplet.ssh-hop.id}"
-  region     = "${digitalocean_droplet.ssh-hop.region}"
-}
-
-resource "digitalocean_floating_ip" "meta" {
-  droplet_id = "${digitalocean_droplet.meta.id}"
-  region     = "${digitalocean_droplet.meta.region}"
 }
 
 resource "digitalocean_record" "gate" {
@@ -222,10 +217,10 @@ resource "digitalocean_record" "gate" {
   value  = "${digitalocean_floating_ip.ssh-hop.ip_address}"
 }
 
-resource "digitalocean_record" "polyswarmd" {
+resource "digitalocean_record" "hive" {
   domain = "polyswarm.network"
   type   = "A"
-  name   = "polyswarmd"
+  name   = "hive"
   value  = "${digitalocean_floating_ip.meta.ip_address}"
 }
 
