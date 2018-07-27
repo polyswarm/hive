@@ -72,7 +72,7 @@ services:
         command: "./scripts/wait_and_test.sh"
     arbiter-tester:
         build:
-            dockerfile: e2e/arbiter.test.Dockerfile
+            dockerfile: docker/arbiter.test.Dockerfile
             context: ../
         depends_on:
           - polyswarmd
