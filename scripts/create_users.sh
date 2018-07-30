@@ -2,7 +2,7 @@
 
 configure_user() {
   user=$1
-  cat >> /etc/ssh/ssh_config <<- EndOfMessage
+  cat >> /etc/ssh/sshd_config <<- EndOfMessage
 
 Match User ${user}
   AllowTcpForwarding yes
