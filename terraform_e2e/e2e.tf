@@ -7,11 +7,11 @@ resource "digitalocean_tag" "e2e-hive-internal" {
 }
 
 resource "digitalocean_tag" "e2e-hive-hop" {
-  name = "e2e-hive-ssh-hop"
+  name = "e2e-hive-hop"
 }
 
 resource "digitalocean_ssh_key" "default" {
-  name       = "Hive Terraform"
+  name       = "e2e terraform"
   public_key = "${file("${var.public_key_path}")}"
 }
 
@@ -72,12 +72,28 @@ resource "digitalocean_droplet" "e2e-meta" {
     }
   }
 
+  provisioner "file" {
+    source      = "../scripts"
+    destination = "/root/scripts"
+
+    connection = {
+      type                = "ssh"
+      user                = "root"
+      private_key         = "${file("${var.private_key_path}")}"
+      bastion_private_key = "${file("${var.private_key_path}")}"
+      bastion_host        = "${digitalocean_droplet.e2e-ssh-hop.ipv4_address}"
+      bastion_user        = "root"
+      agent               = false
+    }
+  }
+
   provisioner "remote-exec" {
     inline = [
       "mkdir /root/contracts",
       "curl -L https://github.com/docker/compose/releases/download/1.18.0/docker-compose-`uname -s`-`uname -m` -o /usr/local/bin/docker-compose",
       "chmod +x /usr/local/bin/docker-compose",
-      "pushd root",
+      "pushd /root",
+      "chmod -R +x /root/scripts",
       "docker-compose -f ./docker/docker-compose-e2e.yml up -d",
     ]
 

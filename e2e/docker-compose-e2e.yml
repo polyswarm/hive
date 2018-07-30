@@ -73,7 +73,7 @@ services:
     arbiter-tester:
         build:
             dockerfile: docker/arbiter.test.Dockerfile
-            context: ../
+            context: /root
         depends_on:
           - polyswarmd
         environment:
