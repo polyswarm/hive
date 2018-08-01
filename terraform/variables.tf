@@ -4,6 +4,10 @@ variable "port-ssh" {
   default = "22"
 }
 
+variable "aws_secret_key" {}
+
+variable "aws_access_key" {}
+
 variable "port-dns" {
   default = "53"
 }

@@ -12,6 +12,17 @@
 # later, we may want to expand to 1 instance per node
 ####
 
+# setup remote state
+data "terraform_remote_state" "network" {
+  backend "s3" {
+    access_key = "${var.aws_access_key}"
+    secret_key = "${var.aws_secret_key}"
+    region = "us-west-1"
+    bucket = "hive-tfstate" // name of your space
+    key = "hive/terraform.tfstate"
+  }
+}
+
 provider "digitalocean" {
   token = "${var.do_token}"
 }
