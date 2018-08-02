@@ -13,13 +13,16 @@
 ####
 
 # setup remote state
-data "terraform_remote_state" "network" {
+terraform {
   backend "s3" {
-    access_key = "${var.aws_access_key}"
-    secret_key = "${var.aws_secret_key}"
-    region = "us-west-1"
-    bucket = "hive-tfstate" // name of your space
+    skip_requesting_account_id = true
+    skip_credentials_validation = true
+    skip_get_ec2_platforms = true
+    skip_metadata_api_check = true
+    region = "us-east-1"
+    bucket = "hive-state"
     key = "hive/terraform.tfstate"
+    endpoint = "https://nyc3.digitaloceanspaces.com"
   }
 }
 

@@ -3,7 +3,7 @@ key
 path
 polyswarmd/
 *.swp
-
+.config
 *.terraform/
 .terraform.tfstate.lock.info
 terraform.tfstate

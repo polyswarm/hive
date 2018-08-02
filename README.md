@@ -22,6 +22,8 @@ To grant a new user access you need to create a directory in `authorized/`. This
 
 ## Launch it
 
+Use `.config.temp` to create a `.config` with a Spaces access key and secret key.
+
 Run `./launch_hive.sh`.
 
 It will prompt for a token, paste the one you grabed from DigitalOcean.
