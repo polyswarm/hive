@@ -76,6 +76,13 @@ resource "digitalocean_droplet" "ssh-hop" {
   }
 }
 
+resource "digitalocean_volume" "hive" {
+  name        = "hive"
+  region      = "${var.region}"
+  size        = 100
+  description = "Volume to hold chain data, ipfs & ssl certs through rebuilds"
+}
+
 # TODO: a single droplet for everything but the SSH hop. we should decompose this.
 resource "digitalocean_droplet" "meta" {
   image    = "docker"
@@ -84,6 +91,7 @@ resource "digitalocean_droplet" "meta" {
   size     = "s-4vcpu-8gb"
   ssh_keys = ["${digitalocean_ssh_key.default.id}"]
   tags     = ["${digitalocean_tag.hive-internal.id}"]
+  volume_ids = ["${digitalocean_volume.hive.id}"]
 
   provisioner "file" {
     source      = "../docker"
@@ -100,13 +108,29 @@ resource "digitalocean_droplet" "meta" {
     }
   }
 
+  provisioner "file" {
+    source      = "../scripts"
+    destination = "/root/scripts"
+
+    connection = {
+      type                = "ssh"
+      user                = "root"
+      private_key         = "${file("${var.private_key_path}")}"
+      bastion_private_key = "${file("${var.private_key_path}")}"
+      bastion_host        = "${digitalocean_droplet.ssh-hop.ipv4_address}"
+      bastion_user        = "root"
+      agent               = false
+    }
+  }
+
   provisioner "remote-exec" {
     inline = [
-      "mkdir /root/contracts",
       "curl -L https://github.com/docker/compose/releases/download/1.18.0/docker-compose-`uname -s`-`uname -m` -o /usr/local/bin/docker-compose",
       "chmod +x /usr/local/bin/docker-compose",
       "pushd root",
-      "docker-compose -f ./docker/docker-compose-hive.yml up -d",
+      "docker-compose -f ./docker/docker-compose-hive.yml pull",
+      "chmod +x /root/scripts/mount_volume.sh",
+      "tmux new-session -d '/root/scripts/mount_volume.sh hive'",
     ]
 
     connection = {
@@ -121,16 +145,6 @@ resource "digitalocean_droplet" "meta" {
   }
 }
 
-resource "digitalocean_floating_ip" "ssh-hop" {
-  droplet_id = "${digitalocean_droplet.ssh-hop.id}"
-  region     = "${digitalocean_droplet.ssh-hop.region}"
-}
-
-resource "digitalocean_floating_ip" "meta" {
-  droplet_id = "${digitalocean_droplet.meta.id}"
-  region     = "${digitalocean_droplet.meta.region}"
-}
-
 # NOTE: effectively treat protocol and port_range as required due to bugs in DO's API
 resource "digitalocean_firewall" "hive-internal" {
   # permit comms among "hive-ssh-hop" and "hive-internal" groups
@@ -143,7 +157,7 @@ resource "digitalocean_firewall" "hive-internal" {
   inbound_rule = [
     {
       protocol    = "tcp"
-      port_range  = "22"
+      port_range  = "${var.port-ssh}"
       source_tags = ["hive-internal", "hive-ssh-hop"]
     },
     {
@@ -214,12 +228,12 @@ resource "digitalocean_firewall" "hive-ssh-hop" {
       # permit all outbound to "hive-internal" (not other ssh hops)
       protocol              = "tcp"
       port_range            = "1-65535"
-      destination_addresses = ["${digitalocean_floating_ip.meta.ip_address}"]
+      destination_addresses = ["${digitalocean_droplet.meta.ipv4_address}"]
     },
     {
       protocol              = "udp"
       port_range            = "1-65535"
-      destination_addresses = ["${digitalocean_floating_ip.meta.ip_address}"]
+      destination_addresses = ["${digitalocean_droplet.ssh-hop.ipv4_address}"]
     },
   ]
 }
@@ -228,14 +242,14 @@ resource "digitalocean_record" "gate" {
   domain = "polyswarm.network"
   type   = "A"
   name   = "gate"
-  value  = "${digitalocean_floating_ip.ssh-hop.ip_address}"
+  value  = "${digitalocean_droplet.ssh-hop.ipv4_address}"
 }
 
 resource "digitalocean_record" "hive" {
   domain = "polyswarm.network"
   type   = "A"
   name   = "hive"
-  value  = "${digitalocean_floating_ip.meta.ip_address}"
+  value  = "${digitalocean_droplet.meta.ipv4_address}"
 }
 
 output "ip-ssh-hop" {
