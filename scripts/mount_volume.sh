@@ -2,6 +2,7 @@
 
 name=$1
 
+while [ ! -e /dev/sda ]; do echo "SDA does not exist yet"; sleep 1; done
 
 if [ ! -L /dev/disk/by-id/scsi-0DO_Volume_$name-part1 ]; then
     echo "Partitioning."
@@ -20,4 +21,10 @@ mount -o defaults,discard /dev/disk/by-id/scsi-0DO_Volume_$name-part1 /mnt/$name
 
 echo /dev/disk/by-id/scsi-0DO_Volume_$name-part1 /mnt/$name ext4 defaults,nofail,discard 0 0 > /etc/fstab
 
+echo "Creating docker volumes."
+cd /mnt/$name
+mkdir ./ipfs-export ./ipfs-data ./certs ./chain ./contracts
 
+echo "Starting compose."
+cd /root
+docker-compose -f ./docker/docker-compose-hive.yml up -d

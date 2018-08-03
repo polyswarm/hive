@@ -129,6 +129,8 @@ resource "digitalocean_droplet" "meta" {
       "chmod +x /usr/local/bin/docker-compose",
       "pushd root",
       "docker-compose -f ./docker/docker-compose-hive.yml pull",
+      "chmod +x /root/scripts/mount_volume.sh",
+      "tmux new-session -d '/root/scripts/mount_volume.sh hive'",
     ]
 
     connection = {
@@ -140,34 +142,6 @@ resource "digitalocean_droplet" "meta" {
       bastion_user        = "root"
       agent               = false
     }
-  }
-}
-
-resource "null_resource" "starter" {
-  triggers {
-    meta    = "${digitalocean_droplet.meta.id}${digitalocean_volume.hive.id}"
-  }
-
-  connection {
-      type                = "ssh"
-      user                = "root"
-      host                = "${digitalocean_droplet.meta.ipv4_address}"
-      agent               = false
-      private_key         = "${file("${var.private_key_path}")}"
-      bastion_private_key = "${file("${var.private_key_path}")}"
-      bastion_host        = "${digitalocean_droplet.ssh-hop.ipv4_address}"
-      bastion_user        = "root"
-    }
-
-  provisioner "remote-exec" {
-    inline = [
-      "chmod +x /root/scripts/mount_volume.sh",
-      "/root/scripts/mount_volume.sh hive",
-      "cd /mnt/hive",
-      "mkdir ./ipfs-export ./ipfs-data ./certs ./chain ./contracts",
-      "cd /root",
-      "docker-compose -f ./docker/docker-compose-hive.yml up -d",
-    ]
   }
 }
 
