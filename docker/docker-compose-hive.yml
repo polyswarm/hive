@@ -32,9 +32,8 @@ services:
             - "contracts:/etc/polyswarmd"
     tlsproxy:
       build:
-        context: ../tls
-        dockerfile: ../tls/Dockerfile
-      image: "polyswarm/tlsproxy"
+        context: /root/tls
+        dockerfile: /root/tls/Dockerfile
       depends_on:
           - homechain
           - ipfs
@@ -45,11 +44,10 @@ services:
           - SIDE_ETH_URI=http://sidechain:8545
           - IPFS_URI=http://ipfs:5001
       ports:
-          - "443:31337"
-
+          - "443:443"
       volumes:
           - "contracts:/etc/polyswarmd"
-          - "../tls/test_ca:/ca"
+          - "/root/tls/test_ca:/ca"
     contracts:
         depends_on:
             - homechain
