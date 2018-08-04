@@ -30,6 +30,24 @@ services:
         command: ["./scripts/wait_for_truffle.sh", "polyswarmd"]
         volumes:
             - "contracts:/etc/polyswarmd"
+    tlsproxy:
+      image: "polyswarm/tlsproxy"
+      depends_on:
+          - homechain
+          - ipfs
+          - contracts
+      environment:
+          - PYTHONUNBUFFERED=1
+          - HOME_ETH_URI=http://homechain:8545
+          - SIDE_ETH_URI=http://sidechain:8545
+          - IPFS_URI=http://ipfs:5001
+      ports:
+          - "443:31337"
+
+      volumes:
+          - "contracts:/etc/polyswarmd"
+
+          - "./tls/test_ca:/ca"
     contracts:
         depends_on:
             - homechain
@@ -81,6 +99,11 @@ volumes:
         driver_opts:
                 type: none
                 device: /mnt/hive/contracts
+                o: bind
+    certs:
+        driver_opts:
+                type: none
+                device: /mnt/hive/certs
                 o: bind
     ipfs-export:
         driver_opts:
