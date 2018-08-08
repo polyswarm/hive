@@ -20,6 +20,7 @@ services:
         image: "polyswarm/polyswarmd"
         depends_on:
             - homechain
+            - sidechain
             - ipfs
         environment:
             - PYTHONUNBUFFERED=1

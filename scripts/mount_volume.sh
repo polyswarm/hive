@@ -23,8 +23,19 @@ echo /dev/disk/by-id/scsi-0DO_Volume_$name-part1 /mnt/$name ext4 defaults,nofail
 
 echo "Creating docker volumes."
 cd /mnt/$name
-mkdir ./ipfs-export ./ipfs-data ./certs ./chain ./contracts
 
-echo "Starting compose."
-cd /root
-docker-compose -f ./docker/docker-compose-hive.yml up -d
+if [ ! -d /mnt/$name/certs ]; then
+    mkdir ./ipfs-export ./ipfs-data ./certs ./home ./side ./contracts
+fi
+
+if [ -f /mnt/$name/contracts/polyswarmd.yml ]; then
+    echo "Contract already deployed."
+    touch /mnt/$name/contracts/.ready
+    # Restart without contracts
+    cd /root
+    docker-compose -f ./docker/docker-compose-hive.yml up -d polyswarmd arbiter ambassador tlsproxy
+else
+    echo "Starting compose."
+    cd /root
+    docker-compose -f ./docker/docker-compose-hive.yml up -d
+fi
