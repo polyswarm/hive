@@ -1,0 +1,4 @@
+V	190803150509Z		1000	unknown	/C=US/ST=CA/O=PolySwarm Pte, Ltd/OU=PolySwarm Valid Test User/CN=PolySwarm Valid Test User/emailAddress=info@polyswarm.io
+V	190803152008Z		1001	unknown	/C=US/ST=CA/O=PolySwarm Pte, Ltd/OU=PolySwarm Test Server/CN=PolySwarm Test Server/emailAddress=info@polyswarm.io
+R	190803152232Z	180803152359Z	1002	unknown	/C=US/ST=CA/O=PolySwarm Pte, Ltd/OU=PolySwarm Revoked Test User/CN=PolySwarm Revoked Test User/emailAddress=info@polyswarm.io
+V	190803204527Z		1003	unknown	/C=US/ST=CA/O=PolySwarm Pte, Ltd/OU=PolySwarm Test Server/CN=polyswarmd/emailAddress=info@polyswarm.io

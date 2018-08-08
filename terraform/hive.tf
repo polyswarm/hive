@@ -162,8 +162,8 @@ resource "digitalocean_firewall" "hive-internal" {
     },
     {
       protocol    = "tcp"
-      port_range  = "31337"
-      source_tags = ["hive-internal", "hive-ssh-hop"]
+      port_range  = "443"
+      source_addresses = ["0.0.0.0/0"]
     },
     {
       protocol    = "tcp"
@@ -188,7 +188,7 @@ resource "digitalocean_firewall" "hive-internal" {
 }
 
 resource "digitalocean_firewall" "hive-ssh-hop" {
-  name        = "only-ssh-in-dns-out"
+  name        = "hive-ssh-hop"
   droplet_ids = ["${digitalocean_droplet.ssh-hop.id}"]
 
   # permit inbound SSH from *
