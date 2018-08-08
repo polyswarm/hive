@@ -123,18 +123,6 @@ resource "digitalocean_droplet" "meta" {
     }
   }
 
-  provisioner "file" {
-    source      = "../tls"
-    destination = "/root/tls"
-
-    connection = {
-      type                = "ssh"
-      user                = "root"
-      private_key         = "${file("${var.private_key_path}")}"
-      agent               = false
-    }
-  }
-
   provisioner "remote-exec" {
     inline = [
       "curl -L https://github.com/docker/compose/releases/download/1.18.0/docker-compose-`uname -s`-`uname -m` -o /usr/local/bin/docker-compose",
