@@ -22,6 +22,8 @@ To grant a new user access you need to create a directory in `authorized/`. This
 
 ## Launch it
 
+Use `.config.temp` to create a `.config` with a Spaces access key and secret key.
+
 Run `./launch_hive.sh`.
 
 It will prompt for a token, paste the one you grabed from DigitalOcean.
@@ -32,9 +34,11 @@ After that, it should run to completion.
 
 ## Re-create the meta droplet
 
+This set of commands will mark the meta droplet for destruction and then rebuild it when you call `lauch_hive`.
+
 ```bash
 cd terraform/
-terraform destroy digitalocean_droplet.meta
+terraform taint digitalocean_droplet.meta
 cd ..`
 ./launch_hive.sh
 ```

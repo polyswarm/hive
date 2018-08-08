@@ -1,18 +1,4 @@
-# infrastructure-wise, PolySwarm Hive is composed of:
-# 1. 1 SSH hop
-# 2. 1+ sealers driving a PoA chain (geth)
-# 3. 1+ bootnodes pointing to the PoA chain
-# 4. 1 polyswarmd node
-# 5. 1 IPFS node
-# 6. 1 non-sealer geth node
-#
-# all communications to items 2+ must route through the SSH hop (item 1)
-# items 2+ may be on the same or different instances
-# let's start simple: they're all on the same instance
-# later, we may want to expand to 1 instance per node
-####
 
-# setup remote state
 terraform {
   backend "s3" {
     skip_requesting_account_id = true
@@ -21,7 +7,7 @@ terraform {
     skip_metadata_api_check = true
     region = "us-east-1"
     bucket = "hive-state"
-    key = "hive/terraform.tfstate"
+    key = "hive/terraform.e2e.tfstate"
     endpoint = "https://nyc3.digitaloceanspaces.com"
   }
 }
@@ -30,26 +16,26 @@ provider "digitalocean" {
   token = "${var.do_token}"
 }
 
-resource "digitalocean_tag" "hive-internal" {
-  name = "hive-internal"
+resource "digitalocean_tag" "e2e-hive-internal" {
+  name = "e2e-hive-internal"
 }
 
-resource "digitalocean_tag" "hive-ssh-hop" {
-  name = "hive-ssh-hop"
+resource "digitalocean_tag" "e2e-hive-hop" {
+  name = "e2e-hive-hop"
 }
 
 resource "digitalocean_ssh_key" "default" {
-  name       = "Hive Terraform"
+  name       = "e2e terraform"
   public_key = "${file("${var.public_key_path}")}"
 }
 
-resource "digitalocean_droplet" "ssh-hop" {
+resource "digitalocean_droplet" "e2e-ssh-hop" {
   image    = "ubuntu-18-04-x64"
-  name     = "ssh-hop-1"
+  name     = "e2e-ssh-hop"
   region   = "${var.region}"
   size     = "s-1vcpu-1gb"
   ssh_keys = ["${digitalocean_ssh_key.default.id}"]
-  tags     = ["${digitalocean_tag.hive-ssh-hop.id}"]
+  tags     = ["${digitalocean_tag.e2e-hive-hop.id}"]
 
   provisioner "file" {
     source      = "../authorized"
@@ -76,25 +62,17 @@ resource "digitalocean_droplet" "ssh-hop" {
   }
 }
 
-resource "digitalocean_volume" "hive" {
-  name        = "hive"
-  region      = "${var.region}"
-  size        = 100
-  description = "Volume to hold chain data, ipfs & ssl certs through rebuilds"
-}
-
 # TODO: a single droplet for everything but the SSH hop. we should decompose this.
-resource "digitalocean_droplet" "meta" {
+resource "digitalocean_droplet" "e2e-meta" {
   image    = "docker"
-  name     = "meta"
+  name     = "e2e-meta"
   region   = "${var.region}"
   size     = "s-4vcpu-8gb"
   ssh_keys = ["${digitalocean_ssh_key.default.id}"]
-  tags     = ["${digitalocean_tag.hive-internal.id}"]
-  volume_ids = ["${digitalocean_volume.hive.id}"]
+  tags     = ["${digitalocean_tag.e2e-hive-internal.id}"]
 
   provisioner "file" {
-    source      = "../docker"
+    source      = "../e2e"
     destination = "/root/docker"
 
     connection = {
@@ -102,7 +80,7 @@ resource "digitalocean_droplet" "meta" {
       user                = "root"
       private_key         = "${file("${var.private_key_path}")}"
       bastion_private_key = "${file("${var.private_key_path}")}"
-      bastion_host        = "${digitalocean_droplet.ssh-hop.ipv4_address}"
+      bastion_host        = "${digitalocean_droplet.e2e-ssh-hop.ipv4_address}"
       bastion_user        = "root"
       agent               = false
     }
@@ -117,7 +95,7 @@ resource "digitalocean_droplet" "meta" {
       user                = "root"
       private_key         = "${file("${var.private_key_path}")}"
       bastion_private_key = "${file("${var.private_key_path}")}"
-      bastion_host        = "${digitalocean_droplet.ssh-hop.ipv4_address}"
+      bastion_host        = "${digitalocean_droplet.e2e-ssh-hop.ipv4_address}"
       bastion_user        = "root"
       agent               = false
     }
@@ -125,12 +103,12 @@ resource "digitalocean_droplet" "meta" {
 
   provisioner "remote-exec" {
     inline = [
+      "mkdir /root/contracts",
       "curl -L https://github.com/docker/compose/releases/download/1.18.0/docker-compose-`uname -s`-`uname -m` -o /usr/local/bin/docker-compose",
       "chmod +x /usr/local/bin/docker-compose",
-      "pushd root",
-      "docker-compose -f ./docker/docker-compose-hive.yml pull",
-      "chmod +x /root/scripts/mount_volume.sh",
-      "tmux new-session -d '/root/scripts/mount_volume.sh hive'",
+      "pushd /root",
+      "chmod -R +x /root/scripts",
+      "docker-compose -f ./docker/docker-compose-e2e.yml up -d",
     ]
 
     connection = {
@@ -138,7 +116,7 @@ resource "digitalocean_droplet" "meta" {
       user                = "root"
       private_key         = "${file("${var.private_key_path}")}"
       bastion_private_key = "${file("${var.private_key_path}")}"
-      bastion_host        = "${digitalocean_droplet.ssh-hop.ipv4_address}"
+      bastion_host        = "${digitalocean_droplet.e2e-ssh-hop.ipv4_address}"
       bastion_user        = "root"
       agent               = false
     }
@@ -146,29 +124,29 @@ resource "digitalocean_droplet" "meta" {
 }
 
 # NOTE: effectively treat protocol and port_range as required due to bugs in DO's API
-resource "digitalocean_firewall" "hive-internal" {
+resource "digitalocean_firewall" "e2e-hive-internal" {
   # permit comms among "hive-ssh-hop" and "hive-internal" groups
 
-  name = "hive-internal-only"
+  name = "e2e-hive-internal-only"
 
-  droplet_ids = ["${digitalocean_droplet.meta.id}"]
+  droplet_ids = ["${digitalocean_droplet.e2e-meta.id}"]
 
   # permit inbound from hive-internal and hive-ssh-hop
   inbound_rule = [
     {
       protocol    = "tcp"
-      port_range  = "${var.port-ssh}"
-      source_tags = ["hive-internal", "hive-ssh-hop"]
+      port_range  = "22"
+      source_tags = ["e2e-hive-internal", "e2e-hive-hop"]
     },
     {
       protocol    = "tcp"
-      port_range  = "443"
-      source_addresses = ["0.0.0.0/0"]
+      port_range  = "31337"
+      source_tags = ["e2e-hive-internal", "e2e-hive-hop"]
     },
     {
       protocol    = "tcp"
       port_range  = "1-65535"
-      source_tags = ["hive-internal"]
+      source_tags = ["e2e-hive-internal"]
     },
   ]
 
@@ -177,19 +155,19 @@ resource "digitalocean_firewall" "hive-internal" {
     {
       protocol         = "tcp"
       port_range       = "1-65535"
-      destination_tags = ["hive-internal"]
+      destination_tags = ["e2e-hive-internal"]
     },
     {
       protocol         = "udp"
       port_range       = "1-65535"
-      destination_tags = ["hive-internal"]
+      destination_tags = ["e2e-hive-internal"]
     },
   ]
 }
 
-resource "digitalocean_firewall" "hive-ssh-hop" {
-  name        = "hive-ssh-hop"
-  droplet_ids = ["${digitalocean_droplet.ssh-hop.id}"]
+resource "digitalocean_firewall" "e2e-hive-hop" {
+  name        = "e2e-only-ssh-in-dns-out"
+  droplet_ids = ["${digitalocean_droplet.e2e-ssh-hop.id}"]
 
   # permit inbound SSH from *
   inbound_rule = [
@@ -217,45 +195,45 @@ resource "digitalocean_firewall" "hive-ssh-hop" {
       # permit all outbound to "hive-internal" (not other ssh hops)
       protocol         = "tcp"
       port_range       = "1-65535"
-      destination_tags = ["hive-internal"]
+      destination_tags = ["e2e-hive-internal"]
     },
     {
       protocol         = "udp"
       port_range       = "1-65535"
-      destination_tags = ["hive-internal"]
+      destination_tags = ["e2e-hive-internal"]
     },
     {
       # permit all outbound to "hive-internal" (not other ssh hops)
       protocol              = "tcp"
       port_range            = "1-65535"
-      destination_addresses = ["${digitalocean_droplet.meta.ipv4_address}"]
+      destination_addresses = ["${digitalocean_droplet.e2e-ssh-hop.ipv4_address}"]
     },
     {
       protocol              = "udp"
       port_range            = "1-65535"
-      destination_addresses = ["${digitalocean_droplet.ssh-hop.ipv4_address}"]
+      destination_addresses = ["${digitalocean_droplet.e2e-meta.ipv4_address}"]
     },
   ]
 }
 
-resource "digitalocean_record" "gate" {
+resource "digitalocean_record" "dev-gate" {
   domain = "polyswarm.network"
   type   = "A"
-  name   = "gate"
-  value  = "${digitalocean_droplet.ssh-hop.ipv4_address}"
+  name   = "dev-gate"
+  value  = "${digitalocean_droplet.e2e-ssh-hop.ipv4_address}"
 }
 
-resource "digitalocean_record" "hive" {
+resource "digitalocean_record" "dev-hive" {
   domain = "polyswarm.network"
   type   = "A"
-  name   = "hive"
-  value  = "${digitalocean_droplet.meta.ipv4_address}"
+  name   = "dev-hive"
+  value  = "${digitalocean_droplet.e2e-meta.ipv4_address}"
 }
 
-output "ip-ssh-hop" {
-  value = "${digitalocean_droplet.ssh-hop.ipv4_address}"
+output "ip-dev-hop" {
+  value = "${digitalocean_droplet.e2e-ssh-hop.ipv4_address}"
 }
 
-output "ip-meta" {
-  value = "${digitalocean_droplet.meta.ipv4_address}"
+output "ip-dev-meta" {
+  value = "${digitalocean_droplet.e2e-meta.ipv4_address}"
 }

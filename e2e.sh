@@ -1,6 +1,6 @@
 #! /bin/bash
 
-pushd terraform
+pushd terraform_e2e
 
 if [ ! -d ".terraform/" ]; then
   terraform init -backend-config=.config
