@@ -25,28 +25,20 @@ services:
             - HOME_ETH_URI=http://homechain:8545
             - SIDE_ETH_URI=http://sidechain:8545
             - IPFS_URI=http://ipfs:5001
-        ports:
-            - "31337:31337"
         command: ["./scripts/wait_for_truffle.sh", "polyswarmd"]
         volumes:
             - "contracts:/etc/polyswarmd"
     tlsproxy:
-      build:
-        context: /root/tls
-        dockerfile: /root/tls/Dockerfile
+      image: polyswarm/polyswarmd-tls
       depends_on:
-          - homechain
-          - ipfs
-          - contracts
+          - polyswarmd
       environment:
-          - PYTHONUNBUFFERED=1
-          - HOME_ETH_URI=http://homechain:8545
-          - SIDE_ETH_URI=http://sidechain:8545
-          - IPFS_URI=http://ipfs:5001
+          - LISTEN_HOST=0.0.0.0
+          - LISTEN_PORT=443
+          - POLYSWARMD_URI=http://polyswarmd:31337
       ports:
           - "443:443"
       volumes:
-          - "contracts:/etc/polyswarmd"
           - "/root/tls/test_ca:/ca"
     contracts:
         depends_on:
