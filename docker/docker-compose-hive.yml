@@ -39,7 +39,7 @@ services:
       ports:
           - "443:443"
       volumes:
-          - "/root/tls/test_ca:/ca"
+          - "certs:/ca"
     contracts:
         depends_on:
             - homechain
