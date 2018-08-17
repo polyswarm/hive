@@ -8,6 +8,10 @@ variable "port-dns" {
   default = "53"
 }
 
+variable "port-tls" {
+  default = "443"
+}
+
 variable "public_key_path" {
   default = "/home/user/.ssh/id.pub"
 }

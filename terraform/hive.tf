@@ -30,50 +30,13 @@ provider "digitalocean" {
   token = "${var.do_token}"
 }
 
-resource "digitalocean_tag" "hive-internal" {
-  name = "hive-internal"
-}
-
-resource "digitalocean_tag" "hive-ssh-hop" {
-  name = "hive-ssh-hop"
+resource "digitalocean_tag" "hive" {
+  name = "hive"
 }
 
 resource "digitalocean_ssh_key" "default" {
   name       = "Hive Terraform"
   public_key = "${file("${var.public_key_path}")}"
-}
-
-resource "digitalocean_droplet" "ssh-hop" {
-  image    = "ubuntu-18-04-x64"
-  name     = "ssh-hop-1"
-  region   = "${var.region}"
-  size     = "s-1vcpu-1gb"
-  ssh_keys = ["${digitalocean_ssh_key.default.id}"]
-  tags     = ["${digitalocean_tag.hive-ssh-hop.id}"]
-
-  provisioner "file" {
-    source      = "../authorized"
-    destination = "/root/authorized"
-
-    connection = {
-      type        = "ssh"
-      user        = "root"
-      private_key = "${file("${var.private_key_path}")}"
-      agent       = false
-    }
-  }
-
-  provisioner "remote-exec" {
-    # Confirm user is added before adding the key
-    script = "../scripts/create_users.sh"
-
-    connection = {
-      type        = "ssh"
-      user        = "root"
-      private_key = "${file("${var.private_key_path}")}"
-      agent       = false
-    }
-  }
 }
 
 resource "digitalocean_volume" "hive" {
@@ -90,7 +53,7 @@ resource "digitalocean_droplet" "meta" {
   region   = "${var.region}"
   size     = "s-4vcpu-8gb"
   ssh_keys = ["${digitalocean_ssh_key.default.id}"]
-  tags     = ["${digitalocean_tag.hive-internal.id}"]
+  tags     = ["${digitalocean_tag.hive.id}"]
   volume_ids = ["${digitalocean_volume.hive.id}"]
 
   provisioner "file" {
@@ -101,9 +64,6 @@ resource "digitalocean_droplet" "meta" {
       type                = "ssh"
       user                = "root"
       private_key         = "${file("${var.private_key_path}")}"
-      bastion_private_key = "${file("${var.private_key_path}")}"
-      bastion_host        = "${digitalocean_droplet.ssh-hop.ipv4_address}"
-      bastion_user        = "root"
       agent               = false
     }
   }
@@ -116,9 +76,6 @@ resource "digitalocean_droplet" "meta" {
       type                = "ssh"
       user                = "root"
       private_key         = "${file("${var.private_key_path}")}"
-      bastion_private_key = "${file("${var.private_key_path}")}"
-      bastion_host        = "${digitalocean_droplet.ssh-hop.ipv4_address}"
-      bastion_user        = "root"
       agent               = false
     }
   }
@@ -137,71 +94,34 @@ resource "digitalocean_droplet" "meta" {
       type                = "ssh"
       user                = "root"
       private_key         = "${file("${var.private_key_path}")}"
-      bastion_private_key = "${file("${var.private_key_path}")}"
-      bastion_host        = "${digitalocean_droplet.ssh-hop.ipv4_address}"
-      bastion_user        = "root"
       agent               = false
     }
   }
 }
 
 # NOTE: effectively treat protocol and port_range as required due to bugs in DO's API
-resource "digitalocean_firewall" "hive-internal" {
-  # permit comms among "hive-ssh-hop" and "hive-internal" groups
+resource "digitalocean_firewall" "hive" {
+  # permit comms among "hive-ssh-hop" and "hive" groups
 
-  name = "hive-internal-only"
+  name = "hive"
 
   droplet_ids = ["${digitalocean_droplet.meta.id}"]
 
-  # permit inbound from hive-internal and hive-ssh-hop
+  # permit inbound over port 443 & ssh access
   inbound_rule = [
     {
       protocol    = "tcp"
       port_range  = "${var.port-ssh}"
-      source_tags = ["hive-internal", "hive-ssh-hop"]
-    },
-    {
-      protocol    = "tcp"
-      port_range  = "443"
       source_addresses = ["0.0.0.0/0"]
     },
     {
       protocol    = "tcp"
-      port_range  = "1-65535"
-      source_tags = ["hive-internal"]
-    },
-  ]
-
-  # permit outbound to hive-internal
-  outbound_rule = [
-    {
-      protocol         = "tcp"
-      port_range       = "1-65535"
-      destination_tags = ["hive-internal"]
-    },
-    {
-      protocol         = "udp"
-      port_range       = "1-65535"
-      destination_tags = ["hive-internal"]
-    },
-  ]
-}
-
-resource "digitalocean_firewall" "hive-ssh-hop" {
-  name        = "hive-ssh-hop"
-  droplet_ids = ["${digitalocean_droplet.ssh-hop.id}"]
-
-  # permit inbound SSH from *
-  inbound_rule = [
-    {
-      protocol         = "tcp"
-      port_range       = "${var.port-ssh}"
+      port_range  = "${var.port-tls}"
       source_addresses = ["0.0.0.0/0"]
-    },
+    }
   ]
 
-  # permit outbound DNS to * (TODO: do we need this)
-  # permit outbound all to hive-internal
+  # permit outbound to dns only
   outbound_rule = [
     {
       protocol              = "tcp"
@@ -213,36 +133,7 @@ resource "digitalocean_firewall" "hive-ssh-hop" {
       port_range            = "${var.port-dns}"
       destination_addresses = ["0.0.0.0/0"]
     },
-    {
-      # permit all outbound to "hive-internal" (not other ssh hops)
-      protocol         = "tcp"
-      port_range       = "1-65535"
-      destination_tags = ["hive-internal"]
-    },
-    {
-      protocol         = "udp"
-      port_range       = "1-65535"
-      destination_tags = ["hive-internal"]
-    },
-    {
-      # permit all outbound to "hive-internal" (not other ssh hops)
-      protocol              = "tcp"
-      port_range            = "1-65535"
-      destination_addresses = ["${digitalocean_droplet.meta.ipv4_address}"]
-    },
-    {
-      protocol              = "udp"
-      port_range            = "1-65535"
-      destination_addresses = ["${digitalocean_droplet.ssh-hop.ipv4_address}"]
-    },
   ]
-}
-
-resource "digitalocean_record" "gate" {
-  domain = "polyswarm.network"
-  type   = "A"
-  name   = "gate"
-  value  = "${digitalocean_droplet.ssh-hop.ipv4_address}"
 }
 
 resource "digitalocean_record" "hive" {
@@ -250,10 +141,6 @@ resource "digitalocean_record" "hive" {
   type   = "A"
   name   = "hive"
   value  = "${digitalocean_droplet.meta.ipv4_address}"
-}
-
-output "ip-ssh-hop" {
-  value = "${digitalocean_droplet.ssh-hop.ipv4_address}"
 }
 
 output "ip-meta" {
