@@ -30,18 +30,6 @@ services:
         command: ["./scripts/wait_for_truffle.sh", "polyswarmd"]
         volumes:
             - "contracts:/etc/polyswarmd"
-    tlsproxy:
-      image: polyswarm/polyswarmd-tls
-      depends_on:
-          - polyswarmd
-      environment:
-          - LISTEN_HOST=0.0.0.0
-          - LISTEN_PORT=443
-          - POLYSWARMD_URI=http://polyswarmd:31337
-      ports:
-          - "443:443"
-      volumes:
-          - "certs:/ca"
     contracts:
         depends_on:
             - homechain
