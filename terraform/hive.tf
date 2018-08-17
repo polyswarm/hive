@@ -82,9 +82,10 @@ resource "digitalocean_droplet" "meta" {
 
   provisioner "remote-exec" {
     inline = [
-      "curl -L https://github.com/docker/compose/releases/download/1.18.0/docker-compose-`uname -s`-`uname -m` -o /usr/local/bin/docker-compose",
-      "chmod +x /usr/local/bin/docker-compose",
       "pushd root",
+      "curl -L https://github.com/docker/compose/releases/download/1.18.0/docker-compose-`uname -s`-`uname -m` -o /usr/local/bin/docker-compose",
+      "curl https://raw.githubusercontent.com/jwilder/nginx-proxy/master/nginx.tmpl > /root/nginx/nginx.tmpl",
+      "chmod +x /usr/local/bin/docker-compose",
       "docker-compose -f ./docker/docker-compose-hive.yml pull",
       "chmod +x /root/scripts/mount_volume.sh",
       "tmux new-session -d '/root/scripts/mount_volume.sh hive'",
