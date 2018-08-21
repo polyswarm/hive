@@ -24,8 +24,8 @@ echo /dev/disk/by-id/scsi-0DO_Volume_$name-part1 /mnt/$name ext4 defaults,nofail
 echo "Creating docker volumes."
 cd /mnt/$name
 
-if [ ! -d /mnt/$name/certs ]; then
-    mkdir ./ipfs-export ./ipfs-data ./certs ./home ./side ./contracts
+if [ ! -d /mnt/$name/contracts]; then
+    mkdir ./contracts ./postgres ./ipfs-export ./ipfs-data ./home ./side
 fi
 
 if [ -f /mnt/$name/contracts/polyswarmd.yml ]; then
@@ -33,7 +33,7 @@ if [ -f /mnt/$name/contracts/polyswarmd.yml ]; then
     touch /mnt/$name/contracts/.ready
     # Restart without contracts
     cd /root
-    docker-compose -f ./docker/docker-compose-hive.yml up -d polyswarmd arbiter ambassador tlsproxy
+    docker-compose -f ./docker/docker-compose-hive.yml up -d polyswarmd arbiter ambassador
 else
     echo "Starting compose."
     cd /root

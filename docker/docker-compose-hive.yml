@@ -30,18 +30,19 @@ services:
         command: ["./scripts/wait_for_truffle.sh", "polyswarmd"]
         volumes:
             - "contracts:/etc/polyswarmd"
-    tlsproxy:
-      image: polyswarm/polyswarmd-tls
-      depends_on:
-          - polyswarmd
-      environment:
-          - LISTEN_HOST=0.0.0.0
-          - LISTEN_PORT=443
-          - POLYSWARMD_URI=http://polyswarmd:31337
-      ports:
-          - "443:443"
-      volumes:
-          - "certs:/ca"
+    postgres:
+        image: postgres
+        restart: always
+        environment:
+            - POSTGRES_PASSWORD=example
+        volums:
+            - "postgres:/var/lib/postgresql/data"
+    apikeymgmt:
+        image: "polyswarm/api-key-management"
+        depends_on:
+            - postgres
+        environment:
+            - DB_URI=postgresql://postgres:example@postgres:5432
     contracts:
         depends_on:
             - homechain
@@ -94,10 +95,10 @@ volumes:
                 type: none
                 device: /mnt/hive/contracts
                 o: bind
-    certs:
+    postgres:
         driver_opts:
                 type: none
-                device: /mnt/hive/certs
+                device: /mnt/hive/postgres
                 o: bind
     ipfs-export:
         driver_opts:
@@ -119,3 +120,4 @@ volumes:
                 type: none
                 device: /mnt/hive/side
                 o: bind
+
