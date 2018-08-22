@@ -4,9 +4,10 @@ Easy stand up & management of DigitalOcean droplets for a PolySwarm testnet.`
 
 ## Prerequisites
 
-* API token for DigitalOcean
+* API token for DigitalOcean (under PolySwarm team)
   [(Instructions)](https://www.digitalocean.com/community/tutorials/how-to-use-the-digitalocean-api-v2)
 * Unencrypted SSH Key in `/home/user/.ssh/id`. (This is a terraform requirement: Use `ssh-keygen` to create it. Don't enter a password)
+* Spaces access and secret key in `.config` (hidden file in repository root)
 * Install Terraform [(Instructions)](https://www.terraform.io/intro/getting-started/install.html)
 
 ## Add users

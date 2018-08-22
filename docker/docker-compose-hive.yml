@@ -5,6 +5,8 @@ services:
         restart: always
         image: nginx
         container_name: nginx
+        depends_on:
+            - polyswarmd
         ports:
             - "80:80"
             - "443:443"
@@ -17,6 +19,8 @@ services:
         restart: always
         image: jwilder/docker-gen
         container_name: nginx-gen
+        depends_on:
+            - polyswarmd
         volumes:
             - "/var/run/docker.sock:/tmp/docker.sock:ro"
             - "/root/nginx/nginx.tmpl:/etc/docker-gen/templates/nginx.tmpl:ro"
@@ -29,6 +33,8 @@ services:
         restart: always
         image: jrcs/letsencrypt-nginx-proxy-companion
         container_name: letsencrypt-nginx-proxy-companion
+        depends_on:
+            - polyswarmd
         volumes:
             - "/var/run/docker.sock:/var/run/docker.sock:ro"
             - "conf:/etc/nginx/conf.d"
@@ -91,6 +97,9 @@ services:
             - postgres
         environment:
             - DB_URI=postgresql://postgres:example@postgres:5432
+        command: ["./scripts/wait_for_it.sh", "-t", "0", "postgres:5432", "--", "apikeymgmt"]
+        ports:
+            - "5000:5000"
     contracts:
         #image: "polyswarm/contracts"
         build:
@@ -189,7 +198,6 @@ volumes:
                 type: none
                 device: /mnt/hive/side
                 o: bind
-
     conf:
     vhost:
     html:
