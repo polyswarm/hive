@@ -1,7 +1,6 @@
 token
 key
 path
-polyswarmd/
 *.swp
 .config
 *.terraform/
@@ -11,3 +10,9 @@ terraform.tfstate.backup
 errored.tfstate
 secrets.tfvars
 *.backup
+docker/ambassador
+docker/api-key-management
+docker/arbiter
+docker/contracts
+docker/polyswarmd
+terraform/config.tfvars

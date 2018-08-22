@@ -17,7 +17,10 @@ services:
             - "side:/root/.ethereum/geth/chaindata"
         command: ["--nodiscover", "--maxpeers", "0", "--syncmode", "full", "--networkid", "1337", "--targetgaslimit", "94000000", "--rpc", "--rpcvhosts", "localhost,sidechain", "--rpcaddr", "0.0.0.0", "--rpcapi", "eth,web3,personal,net", "--ws", "--wsaddr", "0.0.0.0", "--wsapi", "eth,web3,personal,net", "--wsorigins", "*", "--unlock", "4b1867c484871926109e3c47668d5c0938ca3527,d87e4662653042c5da11711542c11f2c8433612d,4f10166cafd7856ea946124927d4478fdd18d979,f0243d9b2e332d7072dd4b143a881b3f135f380c,f870491ea0f53f67846eecb57855284d8270284d,34e583cf9c1789c3141538eec77d9f0b8f7e89f2,2b813f079e7e3cf24eeb1ac5853bd6f9118a04ea,1215242c8f0eff0a4ac06ea3d73caa78279fb9bb,05328f171b8c1463eafdacca478d9ee6a1d923f8,085ba02c35555fecb8147820135fdfec10eed85a", "--password", "password.txt", "--mine", "--gasprice", "0"]
     polyswarmd:
-        image: "polyswarm/polyswarmd"
+        #image: "polyswarm/polyswarmd"
+        build:
+            context: "./polyswarmd"
+            dockerfile: "./docker/Dockerfile"
         depends_on:
             - homechain
             - sidechain
@@ -35,20 +38,26 @@ services:
         restart: always
         environment:
             - POSTGRES_PASSWORD=example
-        volums:
+        volumes:
             - "postgres:/var/lib/postgresql/data"
     apikeymgmt:
-        image: "polyswarm/api-key-management"
+        #image: "polyswarm/api-key-management"
+        build:
+            context: "./api-key-management"
+            dockerfile: "./docker/Dockerfile"
         depends_on:
             - postgres
         environment:
             - DB_URI=postgresql://postgres:example@postgres:5432
     contracts:
+        #image: "polyswarm/contracts"
+        build:
+            context: "./contracts"
+            dockerfile: "./docker/Dockerfile"
         depends_on:
             - homechain
             - sidechain
             - ipfs
-        image: "polyswarm/contracts"
         environment:
             - geth=homechain
             - HOME_CHAIN=http://homechain:8545
@@ -68,27 +77,40 @@ services:
             - "ipfs-export:/export"
             - "ipfs-data:/data/ipfs"
     ambassador:
-        image: "polyswarm/ambassador"
+        #image: "polyswarm/ambassador"
+        build:
+            context: "./ambassador"
+            dockerfile: "./docker/Dockerfile"
         depends_on:
           - polyswarmd
         environment:
           - POLYSWARMD_HOST=polyswarmd
           - POLYSWARMD_PORT=31337
+          - PYTHONUNBUFFERED=1
+          - API_KEY_HOST=apikeymgmt:5000
+          - EMAIL=ambassador@polyswarm.io
+          - ADDRESS=0x4b1867c484871926109e3c47668d5c0938ca3527
+          - POLYSWARMD_HOST=polyswarmd:31337
         command: "./wait_and_run.sh"
         restart: always
     arbiter:
-        image: "polyswarm/arbiter"
+        #image: "polyswarm/arbiter"
+        build:
+            context: "./arbiter"
+            dockerfile: "./docker/Dockerfile"
         depends_on:
             - polyswarmd
             - homechain
         environment:
             - PYTHONUNBUFFERED=1
-            - POLYSWARM_HOST=http://polyswarmd:31337
-            - GETH=http://homechain:8545
+            - API_KEY_HOST=apikeymgmt:5000
+            - EMAIL=arbiter@polyswarm.io
             - ADDRESS=0xf870491ea0f53f67846eecb57855284d8270284d
+            - POLYSWARMD_HOST=polyswarmd:31337
+            - GETH=http://homechain:8545
             - PASSWORD=password
             - CHAIN=home
-        command: ["./scripts/wait_for_it.sh", "-t", "0", "polyswarmd:31337", "--", "python3", "arbiter.py", "--backend", "verbatim"]
+        command: ["./scripts/wait_and_run.sh", "--backend", "verbatim"]
 volumes:
     contracts:
         driver_opts:
