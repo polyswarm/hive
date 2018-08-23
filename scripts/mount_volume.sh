@@ -24,7 +24,7 @@ echo /dev/disk/by-id/scsi-0DO_Volume_$name-part1 /mnt/$name ext4 defaults,nofail
 echo "Creating docker volumes."
 cd /mnt/$name
 
-mkdir -p ./certs ./contracts ./postgres ./ipfs-export ./ipfs-data ./home ./side
+mkdir -p ./contracts ./postgres ./ipfs-export ./ipfs-data ./home ./side
 
 if [ -f /mnt/$name/contracts/polyswarmd.yml ]; then
     echo "Contract already deployed."

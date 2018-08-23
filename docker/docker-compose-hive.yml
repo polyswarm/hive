@@ -1,49 +1,5 @@
 version: "3"
 services:
-    # TLS setup via letsencrypt
-    nginx:
-        restart: always
-        image: nginx
-        container_name: nginx
-        depends_on:
-            - polyswarmd
-        ports:
-            - "80:80"
-            - "443:443"
-        volumes:
-            - "conf:/etc/nginx/conf.d"
-            - "vhost:/etc/nginx/vhost.d"
-            - "html:/usr/share/nginx/html"
-            - "certs:/etc/nginx/certs:ro"
-    nginx-gen:
-        restart: always
-        image: jwilder/docker-gen
-        container_name: nginx-gen
-        depends_on:
-            - polyswarmd
-        volumes:
-            - "/var/run/docker.sock:/tmp/docker.sock:ro"
-            - "/root/nginx/nginx.tmpl:/etc/docker-gen/templates/nginx.tmpl:ro"
-            - "conf:/etc/nginx/conf.d"
-            - "vhost:/etc/nginx/vhost.d"
-            - "html:/usr/share/nginx/html"
-            - "certs:/etc/nginx/certs:ro"
-        entrypoint: /usr/local/bin/docker-gen -notify-sighup nginx -watch -wait 5s:30s /etc/docker-gen/templates/nginx.tmpl /etc/nginx/conf.d/default.conf
-    letsencrypt-nginx-proxy-companion:
-        restart: always
-        image: jrcs/letsencrypt-nginx-proxy-companion
-        container_name: letsencrypt-nginx-proxy-companion
-        depends_on:
-            - polyswarmd
-        volumes:
-            - "/var/run/docker.sock:/var/run/docker.sock:ro"
-            - "conf:/etc/nginx/conf.d"
-            - "vhost:/etc/nginx/vhost.d"
-            - "html:/usr/share/nginx/html"
-            - "certs:/etc/nginx/certs:rw"
-        environment:
-            - NGINX_DOCKER_GEN_CONTAINER=nginx-gen
-            - NGINX_PROXY_CONTAINER=nginx
     homechain:
         image: polyswarm/priv-testnet
         ports:
@@ -74,13 +30,11 @@ services:
             - HOME_ETH_URI=http://homechain:8545
             - SIDE_ETH_URI=http://sidechain:8545
             - IPFS_URI=http://ipfs:5001
-            - VIRTUAL_HOST=hive.polyswarm.network
-            - VIRTUAL_PORT=31337
-            - LETSENCRYPT_HOST=hive.polyswarm.network
-            - LETSENCRYPT_EMAIL=info@polyswarm.io
-        command: ["./scripts/wait_for_truffle.sh", "polyswarmd"]
+        command: ["/bin/bash", "./scripts/wait_for_truffle.sh", "polyswarmd"]
         volumes:
             - "contracts:/etc/polyswarmd"
+        ports:
+            - "80:31337"
     postgres:
         image: postgres
         restart: always
@@ -97,7 +51,7 @@ services:
             - postgres
         environment:
             - DB_URI=postgresql://postgres:example@postgres:5432
-        command: ["./scripts/wait_for_it.sh", "-t", "0", "postgres:5432", "--", "apikeymgmt"]
+        command: ["/bin/bash", "./scripts/wait_for_it.sh", "-t", "0", "postgres:5432", "--", "apikeymgmt"]
         ports:
             - "5000:5000"
     contracts:
@@ -115,6 +69,7 @@ services:
             - SIDE_CHAIN=http://sidechain:8545
             - IPFS=http://ipfs:5001
             - OPTIONS=/config/users.yml
+        command: ["/bin/bash", "./scripts/migrate_and_create_config.sh"]
         volumes:
             - "contracts:/build"
             - "./config:/config"
@@ -163,11 +118,6 @@ services:
             - CHAIN=home
         command: ["./scripts/wait_and_run.sh", "--backend", "verbatim"]
 volumes:
-    certs:
-        driver_opts:
-                type: none
-                device: /mnt/hive/certs
-                o: bind
     contracts:
         driver_opts:
                 type: none
@@ -198,6 +148,3 @@ volumes:
                 type: none
                 device: /mnt/hive/side
                 o: bind
-    conf:
-    vhost:
-    html:
